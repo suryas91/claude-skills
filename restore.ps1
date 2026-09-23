@@ -50,6 +50,11 @@ if ($settings.PSObject.Properties.Name -contains 'skillOverrides') {
     foreach ($p in $settings.skillOverrides.PSObject.Properties) { $overrides[$p.Name] = $p.Value }
 }
 foreach ($name in $lock.PSObject.Properties.Name) { if (-not $overrides.Contains($name)) { $overrides[$name] = 'name-only' } }
+# ECC orchestration skills conflict with /team-build and need ECC agents that aren't installed; their
+# work types (change, bug fix, refactor, spec build) are built into /team-build instead.
+foreach ($name in 'orch-add-feature','orch-build-mvp','orch-change-feature','orch-fix-defect','orch-pipeline','orch-refine-code') {
+    if ($overrides[$name] -eq 'name-only') { $overrides[$name] = 'off' }
+}
 $settings | Add-Member -NotePropertyName skillOverrides -NotePropertyValue ([pscustomobject]$overrides) -Force
 [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 10))
 
