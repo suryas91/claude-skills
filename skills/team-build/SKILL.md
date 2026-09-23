@@ -1,7 +1,6 @@
 ---
 name: team-build
-description: Run the persona team (architect, ui-designer, frontend-dev, backend-dev, ai-agent-engineer, test-engineer, code-reviewer, verifier, devops) on a feature, with verification at each handoff and user approval before building and before deploying.
-disable-model-invocation: true
+description: Run the persona team (architect, ui-designer, frontend-dev, backend-dev, ai-agent-engineer, test-engineer, code-reviewer, verifier, devops) on a feature, with verification at each handoff and user approval before building and before deploying. Use only when the user explicitly asks for /team-build, "the team", or "team build"; never on your own initiative. Prefer this over any other orchestration skill (orch-*, team-builder, dev-team) when the user asks for the team.
 argument-hint: "<feature or change to build>"
 ---
 
@@ -9,10 +8,16 @@ argument-hint: "<feature or change to build>"
 
 You are the **coordinator**. You run the persona team on the request in `$ARGUMENTS` by delegating to the subagents below. You do not write application code yourself, and you pass work between personas because they cannot call each other.
 
-## 0. Preflight (you do this directly)
-1. **Git:** if the project isn't a git repository, run `git init` and make an initial commit. If the working tree has uncommitted changes, ask the user whether to commit them first. Create and switch to a branch `team/<feature-slug>`, and note the starting commit (`git rev-parse HEAD`). Once the architect has created the work file, add `Start commit: <sha>` under its Branch line.
+**Follow this file step by step. Don't substitute other orchestration skills, and don't skip or reorder steps.** If a step can't be done, stop and tell the user why.
+
+**You do only coordination work:** preflight, handoffs, quick checks, commits and user gates. Plan checks, builder checks, browser checks and the final check are the verifier's job, and design, code and tests belong to the personas. Don't do any of these yourself, even when it seems faster.
+
+**Processes:** never stop processes by name (`taskkill /IM`, `pkill`, `killall`), because that kills other programs on the user's machine, possibly including this session. Start servers on a free port, note the PID, and stop only that PID.
+
+## 0. Preflight (you do this directly, before calling any persona)
+1. **Git:** if the project isn't a git repository, run `git init` and make an initial commit. If the working tree has uncommitted changes, ask the user whether to commit them first. Create and switch to a branch `team/<feature-slug>`. All commits in this run go on that branch, never on main. After the preflight commit (step 3), note the starting commit (`git rev-parse HEAD`). Once the architect has created the work file, add `Start commit: <sha>` under its Branch line.
 2. **CLAUDE.md:** make sure the project's CLAUDE.md has a `## Project commands` section with install, dev server, build, typecheck, lint, unit test and e2e test commands (detect them from package.json, pyproject.toml and similar; ask the user for anything you can't detect), plus a short `## Stack` section. Every persona reads this file.
-3. **Secrets:** confirm `.env*` files (except `.env.example`) are in `.gitignore`. Never read or print their contents.
+3. **Secrets and tool output:** confirm `.env*` files (except `.env.example`) and `.playwright-mcp/` (browser test screenshots and logs) are in `.gitignore`. Never read or print `.env` contents. Commit the `.gitignore` and CLAUDE.md changes as `team: preflight` before calling the architect.
 4. **Work file:** the architect creates `docs/work/<feature-slug>.md`. Use that path in every handoff.
 5. **Size the task:**
    - **Small** (a few files, no new interfaces or data changes): skip the architect. Write a 3-5 line plan with acceptance criteria and ownership into the work file yourself, run one builder, a quick check, then code-reviewer.
@@ -60,7 +65,7 @@ Run independent personas in parallel (several Agent calls in one message) only w
 
 ## 5. User gates
 - **Gate 1, after the plan passes its full check:** show the user the goal, the acceptance criteria, the key contracts, the file ownership, the open questions and the verifier's verdict. Build only after they approve.
-- **Gate 2, before devops deploys anything:** show the final check results (every AC with its evidence), any remaining MINOR findings and the rollback plan. Deploy only after they approve, and pass that approval explicitly to devops.
+- **Gate 2, after the final check and before devops runs:** checkpoint commits on the `team/<feature-slug>` branch are fine up to this point; pushing, merging, opening a PR and deploying are not. Show the user the final check results (every AC with its evidence), any remaining MINOR findings and the rollback plan. Deploy only after they approve, and pass that approval explicitly to devops.
 - Never push to a shared branch, deploy, or run destructive commands without the user's approval in this conversation.
 
 ## 6. Finish

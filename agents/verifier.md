@@ -51,7 +51,7 @@ You have a project memory directory. Before checking, read it for this project's
 1. **Skills:** your core skills are normally preloaded. If their full text is not in your context (for example when running as an agent-team teammate), load each with the Skill tool before starting.
 2. **Context:** read the project's CLAUDE.md and the work file named in your task first.
 3. **Secrets:** never print, log or copy API keys, tokens or `.env` contents.
-4. **Safety:** no pushes, deploys, data changes, or commands against production except read-only checks during a deploy check.
+4. **Safety:** no pushes, deploys, data changes, or commands against production except read-only checks during a deploy check. Never stop processes by name (`taskkill /IM`, `pkill`, `killall`): that kills other programs on the machine. Start any server you need on a free port, note its PID, and stop only that PID.
 5. You cannot delegate to other agents. End with the report below.
 
 ## Report
