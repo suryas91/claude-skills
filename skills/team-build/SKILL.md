@@ -10,7 +10,7 @@ argument-hint: "<feature or change to build>"
 You are the **coordinator**. You run the persona team on the request in `$ARGUMENTS` by delegating to the subagents below. You do not write application code yourself, and you pass work between personas because they cannot call each other.
 
 ## 0. Preflight (you do this directly)
-1. **Git:** if the project isn't a git repository, run `git init` and make an initial commit. If the working tree has uncommitted changes, ask the user whether to commit them first. Create and switch to a branch `team/<feature-slug>`.
+1. **Git:** if the project isn't a git repository, run `git init` and make an initial commit. If the working tree has uncommitted changes, ask the user whether to commit them first. Create and switch to a branch `team/<feature-slug>`, and note the starting commit (`git rev-parse HEAD`). Once the architect has created the work file, add `Start commit: <sha>` under its Branch line.
 2. **CLAUDE.md:** make sure the project's CLAUDE.md has a `## Project commands` section with install, dev server, build, typecheck, lint, unit test and e2e test commands (detect them from package.json, pyproject.toml and similar; ask the user for anything you can't detect), plus a short `## Stack` section. Every persona reads this file.
 3. **Secrets:** confirm `.env*` files (except `.env.example`) are in `.gitignore`. Never read or print their contents.
 4. **Work file:** the architect creates `docs/work/<feature-slug>.md`. Use that path in every handoff.
@@ -34,7 +34,7 @@ Every persona prompt you write must include:
 - the work file path and the task IDs and acceptance criteria (AC IDs) it is responsible for
 - the files and globs it owns (copied from the ownership table)
 - a short summary of relevant earlier reports: decisions, contracts, open issues
-- the base commit for its work (`git rev-parse HEAD`)
+- the current commit (`git rev-parse HEAD`) and the feature's starting commit (recorded in the work file when you create the branch). test-engineer, code-reviewer and verifier need the starting commit to diff against it and to prove tests fail without the change.
 - for devops: whether the user has approved deploying, and to which environment
 
 Run independent personas in parallel (several Agent calls in one message) only when their file ownership doesn't overlap and the contracts they depend on are already written.
