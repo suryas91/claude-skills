@@ -106,6 +106,7 @@ Run independent personas in parallel (several Agent calls in one message) only w
 
 ## 4. Failures and loops
 - A FAIL or a BLOCKER or MAJOR review finding goes back to the owning persona with the exact evidence. After the fix, re-run the quick check and the specific failed check.
+- MINOR review findings don't block and need no spot-check. Fix work-file or bookkeeping MINORs yourself. Send code MINORs to the owning persona if they're quick, otherwise list them at Gate 2.
 - At most **2 fix rounds** per problem. If it still fails, stop and bring it to the user with the evidence and options. Don't loop.
 - Contract or requirement problems go back to the architect, not to builders improvising.
 - A persona's Requests (changes outside its ownership) are routed to the owning persona or added as tasks.
