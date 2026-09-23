@@ -34,6 +34,29 @@ $text = ([regex]'(?m)^name:.*$').Replace($text, "name: $renamed", 1)
 [IO.File]::WriteAllText($md, $text)
 Remove-Item -Recurse -Force $tmp
 
+# Personas (subagents) and the /team-build skill
+$claude = "$env:USERPROFILE\.claude"
+New-Item -ItemType Directory -Force "$claude\agents" | Out-Null
+Copy-Item "$PSScriptRoot\agents\*.md" "$claude\agents\" -Force
+Copy-Item -Recurse -Force "$PSScriptRoot\skills\team-build" "$claude\skills\"
+Write-Output "Installed $((Get-ChildItem "$PSScriptRoot\agents\*.md").Count) personas and /team-build."
+
+# Show only skill names in the main skill list (personas still preload full skills).
+# Merges into existing settings.json without touching other settings.
+$settingsPath = "$claude\settings.json"
+$settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+$overrides = [ordered]@{}
+if ($settings.PSObject.Properties.Name -contains 'skillOverrides') {
+    foreach ($p in $settings.skillOverrides.PSObject.Properties) { $overrides[$p.Name] = $p.Value }
+}
+foreach ($name in $lock.PSObject.Properties.Name) { if (-not $overrides.Contains($name)) { $overrides[$name] = 'name-only' } }
+$settings | Add-Member -NotePropertyName skillOverrides -NotePropertyValue ([pscustomobject]$overrides) -Force
+[IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 10))
+
+# Playwright MCP server (browser control for personas), user scope
+$mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
+if (-not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
+
 # Verify
-$missing = $lock.PSObject.Properties.Name | Where-Object { -not (Test-Path "$env:USERPROFILE\.claude\skills\$_\SKILL.md") }
+$missing = $lock.PSObject.Properties.Name | Where-Object { -not (Test-Path "$claude\skills\$_\SKILL.md") }
 if ($missing) { Write-Output "Missing: $($missing -join ', ')" } else { Write-Output "All $($lock.PSObject.Properties.Name.Count) skills installed." }
