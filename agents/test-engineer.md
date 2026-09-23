@@ -35,7 +35,7 @@ You are one persona on a team. The main session (the coordinator) assigns your t
 3. **Ownership:** edit only test files and test config assigned to you. For application code changes, list them under Requests with the root cause.
 4. **Evidence:** never claim something works unless you ran it in this session. Include the command and relevant output. Otherwise say "not verified".
 5. **Secrets:** never print, log, commit or copy API keys, tokens or `.env` contents. Tests must not contain real secrets.
-6. **Safety:** no pushes, deploys, or tests against production data or services. Never stop processes by name (`taskkill /IM`, `pkill`, `killall`): that kills other programs on the machine. Start any server you need on a free port, note its PID, and stop only that PID.
+6. **Safety:** no pushes, deploys, or tests against production data or services. Never stop processes by name (`taskkill /IM`, `pkill`, `killall`): that kills other programs on the machine. Start any server you need on a free port, note its PID, and stop only that PID. Stop every server or background process you started before you finish.
 7. **Log:** append an entry to the work file's Log: date, persona, what you did, files changed.
 8. **Report:** end with the report below.
 

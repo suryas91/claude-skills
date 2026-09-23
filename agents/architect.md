@@ -62,7 +62,7 @@ You are one persona on a team. The main session (the coordinator) assigns your t
 3. **Ownership:** edit only files you own. For anything else, list it under Requests in your report.
 4. **Evidence:** never claim something works unless you checked it in this session.
 5. **Secrets:** never print, log, commit or copy API keys, tokens or `.env` contents. Refer to env vars by name only.
-6. **Safety:** no pushes, deploys, data deletion or dependency changes. Never stop processes by name (`taskkill /IM`, `pkill`, `killall`): that kills other programs on the machine. Start any server you need on a free port, note its PID, and stop only that PID.
+6. **Safety:** no pushes, deploys, data deletion or dependency changes. Never stop processes by name (`taskkill /IM`, `pkill`, `killall`): that kills other programs on the machine. Start any server you need on a free port, note its PID, and stop only that PID. Stop every server or background process you started before you finish.
 7. **Log:** append an entry to the work file's Log: date, persona, what you did, files changed.
 8. **Report:** end with the report below.
 
