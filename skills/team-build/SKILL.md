@@ -56,6 +56,7 @@ Run independent personas in parallel (several Agent calls in one message) only w
 - At most **2 fix rounds** per problem. If it still fails, stop and bring it to the user with the evidence and options. Don't loop.
 - Contract or requirement problems go back to the architect, not to builders improvising.
 - A persona's Requests (changes outside its ownership) are routed to the owning persona or added as tasks.
+- Impeccable design-hook findings that reach you (for example after a turn ends) go to the persona that owns the file, usually frontend-dev, or to ui-designer if the finding conflicts with the design spec. Don't fix UI files yourself.
 
 ## 5. User gates
 - **Gate 1, after the plan passes its full check:** show the user the goal, the acceptance criteria, the key contracts, the file ownership, the open questions and the verifier's verdict. Build only after they approve.

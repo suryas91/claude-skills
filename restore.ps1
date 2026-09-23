@@ -57,6 +57,13 @@ $settings | Add-Member -NotePropertyName skillOverrides -NotePropertyValue ([psc
 $mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
 if (-not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
 
+# Impeccable design plugin (skill + design hook), user scope
+$plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
+if ($plugins -notmatch 'impeccable@impeccable') {
+    npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
+    npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+}
+
 # Verify
 $missing = $lock.PSObject.Properties.Name | Where-Object { -not (Test-Path "$claude\skills\$_\SKILL.md") }
 if ($missing) { Write-Output "Missing: $($missing -join ', ')" } else { Write-Output "All $($lock.PSObject.Properties.Name.Count) skills installed." }

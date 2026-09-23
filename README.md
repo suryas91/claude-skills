@@ -50,11 +50,21 @@ The script:
 2. Installs the personas into `~/.claude/agents` and `/team-build` into `~/.claude/skills`.
 3. Sets every skill to name-only in the main skill list (`skillOverrides` in `~/.claude/settings.json`). This cuts the list from about 28k tokens to about 2k. Personas still load their skills in full. Existing settings are kept.
 4. Adds the Playwright MCP server so personas can control a browser.
-5. Lists any skill that failed to install.
+5. Installs the [Impeccable](https://impeccable.style) design plugin (see below).
+6. Lists any skill that failed to install.
 
 Start a new Claude Code session afterwards.
 
 `design-system-nextlevelbuilder` is installed under that name because its original name, `design-system`, is already taken by a skill from `affaan-m/ecc`. The script renames it automatically.
+
+## Impeccable
+
+A design plugin from [pbakaus/impeccable](https://github.com/pbakaus/impeccable), installed through Claude Code's plugin system (not the skills lock file).
+
+- **Skill:** `/impeccable <command>`, for example `audit`, `critique`, `polish`, `typeset`, `layout` or `colorize`. It's a backup skill for the ui-designer.
+- **Design hook:** runs automatically after edits to UI files and at the end of each turn, in every project, and asks Claude to fix or justify each finding (contrast, overused fonts, AI-template patterns). It skips non-UI files and takes under 0.2 seconds.
+- **Engine:** the first run downloads a checksum-verified engine program into `~/.impeccable/bin/` from the project's GitHub releases.
+- **Turning the hook off:** for one project, run `/impeccable hooks off` there. Everywhere: set the environment variable `IMPECCABLE_HOOK_DISABLED=1`. To remove the plugin, run `claude plugin uninstall impeccable@impeccable`.
 
 ## Keeping it current
 
