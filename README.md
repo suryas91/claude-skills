@@ -50,8 +50,9 @@ The script:
 2. Installs the personas into `~/.claude/agents` and `/team-build` into `~/.claude/skills`.
 3. Sets every skill to name-only in the main skill list (`skillOverrides` in `~/.claude/settings.json`). This cuts the list from about 28k tokens to about 2k. Personas still load their skills in full. Existing settings are kept.
 4. Adds the Playwright MCP server so personas can control a browser.
-5. Installs the [Impeccable](https://impeccable.style) design plugin (see below).
-6. Lists any skill that failed to install.
+5. Makes auto mode the default permission mode (unless one is already set).
+6. Installs the [Impeccable](https://impeccable.style) design plugin (see below).
+7. Lists any skill that failed to install.
 
 Start a new Claude Code session afterwards.
 

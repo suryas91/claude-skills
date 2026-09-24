@@ -56,6 +56,9 @@ foreach ($name in 'orch-add-feature','orch-build-mvp','orch-change-feature','orc
     if ($overrides[$name] -eq 'name-only') { $overrides[$name] = 'off' }
 }
 $settings | Add-Member -NotePropertyName skillOverrides -NotePropertyValue ([pscustomobject]$overrides) -Force
+# Auto mode as the default permission mode (keeps any other permission settings)
+if (-not ($settings.PSObject.Properties.Name -contains 'permissions')) { $settings | Add-Member -NotePropertyName permissions -NotePropertyValue ([pscustomobject]@{}) }
+if (-not $settings.permissions.defaultMode) { $settings.permissions | Add-Member -NotePropertyName defaultMode -NotePropertyValue 'auto' -Force }
 [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 10))
 
 # Playwright MCP server (browser control for personas), user scope
