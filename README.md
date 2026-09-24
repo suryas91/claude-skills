@@ -1,6 +1,6 @@
 # claude-skills
 
-My Claude Code setup: the skills I have installed, a team of 9 personas that use them, and a `/team-build` command that runs the team on a feature.
+My Claude Code setup: the skills I have installed, a team of 9 personas that use them, and a `/team-build` command that runs the team on features, changes, bug fixes, refactors and spec builds.
 
 - `skills-lock.json`: every installed skill, the GitHub repo it comes from, and its path in that repo.
 - `agents/`: the 9 personas (Claude Code subagents).
@@ -31,7 +31,17 @@ In any project:
 /team-build add a chat assistant to the dashboard
 ```
 
-The main session coordinates. It sets up Git and the project's CLAUDE.md commands, then runs architect -> builders (in parallel) -> test-engineer -> code-reviewer -> verifier -> devops. There's a verification check at each handoff. It stops for your approval after the plan and before any deploy. Plans, decisions and handoff logs are kept in `docs/work/<feature>.md` in the project.
+The main session coordinates. It sets up Git and the project's CLAUDE.md commands, works out what kind of work it is, and runs the matching flow:
+
+| Work type | Example | Flow |
+|---|---|---|
+| Feature | `/team-build add a chat assistant` | architect -> builders in parallel -> test-engineer -> code-reviewer -> verifier |
+| Change | `/team-build make search also match tags` | architect updates the plan -> test-engineer updates tests first -> builders -> review -> verifier |
+| Bug fix | `/team-build bug: pasted text shows too few words` | test-engineer reproduces it with a failing test -> builder fixes the root cause -> review -> verifier |
+| Refactor | `/team-build split server.js into modules` | verifier records a test baseline -> builders restructure -> review confirms no behavior change -> same tests pass |
+| Spec build | `/team-build build the MVP in docs/prd.md` | architect plans thin slices from the spec -> first slice built and checked before the rest |
+
+There's a verification check at each handoff. It stops for your approval after the plan and before any deploy. Plans, decisions and handoff logs are kept in `docs/work/<slug>.md` in the project, and all commits go on a `team/<slug>` branch.
 
 You can also call one persona directly: "have the code-reviewer look at my changes", or `@agent-code-reviewer`.
 
