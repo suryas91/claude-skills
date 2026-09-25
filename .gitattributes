@@ -1,0 +1,7 @@
+# Store and check out text files with LF line endings on every machine, so the repo
+# and the installed copy in ~/.claude are byte-for-byte identical. Windows PowerShell
+# 5.1 and Claude Code both read LF files without trouble.
+* text=auto eol=lf
+
+# Binary files: never convert.
+*.png binary

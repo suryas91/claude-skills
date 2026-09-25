@@ -38,7 +38,7 @@ Treat deploying through the team as experimental for now. [Lessons learned](docs
 | 4 hooks | Enforce rules that instructions alone can't: file ownership, risky commands, tests must pass, resuming a run | `hooks/` |
 | Custom skills | `/freeze` (limit edits to some folders) and `playwright-testing` | `skills/` |
 | Third-party skills | About 360 skills from other repos, pinned in a lock file. The team uses about 65 of them; the rest are general-purpose skills you can use yourself. | `skills-lock.json` |
-| Installer | Installs everything and merges your settings. Safe to re-run. | `restore.ps1` |
+| Installer | Installs everything and merges your settings. Safe to re-run. | `install.ps1` |
 
 ## Install
 
@@ -62,7 +62,7 @@ Then install:
 ```powershell
 git clone https://github.com/suryas91/claude-skills
 cd claude-skills
-powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 `-ExecutionPolicy Bypass` is needed because Windows blocks local scripts by default.
@@ -188,11 +188,31 @@ You can also use one persona on its own, without the full flow: see [Calling one
 
 ```powershell
 git pull
-powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SkipDownloads
 ```
 
 `-SkipDownloads` updates the team files, hooks and settings without downloading skills, so it needs no network. To update the third-party skills too, run the installer without it. To change the setup, or to contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Credits
+## License and credits
 
-The checklists, hooks and several process ideas are adapted from [gstack](https://github.com/garrytan/gstack), [ruflo](https://github.com/ruvnet/ruflo) and [claude-skills (alirezarezvani)](https://github.com/alirezarezvani/claude-skills), all MIT-licensed. [NOTICE.md](skills/team-build/references/NOTICE.md) records exactly what came from where.
+This repo's own files are released under the [MIT License](LICENSE).
+
+**Adapted work.** The checklists, hooks and several process ideas are adapted from three MIT-licensed projects:
+- [gstack](https://github.com/garrytan/gstack) by Garry Tan
+- [ruflo](https://github.com/ruvnet/ruflo) by ruvnet
+- [claude-skills](https://github.com/alirezarezvani/claude-skills) by Alireza Rezvani (the `playwright-testing` skill is adapted from it)
+
+[NOTICE.md](skills/team-build/references/NOTICE.md) records exactly what came from where, with each project's license.
+
+**Third-party skills.** These aren't copied into this repo. `skills-lock.json` lists them, and the installer downloads each one from its author's repo, under that repo's own license:
+- [affaan-m/ecc](https://github.com/affaan-m/ecc)
+- [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)
+- [emilkowalski/skills](https://github.com/emilkowalski/skills)
+- [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill)
+- [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
+- [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)
+- [kylezantos/design-motion-principles](https://github.com/kylezantos/design-motion-principles)
+- [arvindrk/extract-design-system](https://github.com/arvindrk/extract-design-system)
+- [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)
+
+**Design plugin.** [pbakaus/impeccable](https://github.com/pbakaus/impeccable), installed through Claude Code's plugin system.

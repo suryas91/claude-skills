@@ -153,7 +153,7 @@ It should end with `FAILURES: 0`.
 
 Open `~/.claude/settings.json` and remove the hook's entry under `hooks`, then start a new session.
 
-Re-running `restore.ps1` adds any missing hook back, so remove it again after reinstalling or updating.
+Re-running `install.ps1` adds any missing hook back, so remove it again after reinstalling or updating.
 
 ## What is still up to you
 

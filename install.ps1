@@ -6,8 +6,8 @@
 #   4. the Playwright MCP server and the Impeccable design plugin
 #   5. checks: lists any skill that failed to install and runs the hook test suite
 # Usage (Windows blocks local scripts by default, hence -ExecutionPolicy Bypass):
-#   powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1                  full install
-#   powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads   only steps 2, 3 and 5:
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1                  full install
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SkipDownloads   only steps 2, 3 and 5:
 #       no skill downloads, no npx, no network. Use it to update the team files after a git pull.
 # Safe to re-run: files from this repo are overwritten with the repo's copy, settings are merged.
 param([switch]$SkipDownloads)
@@ -37,7 +37,7 @@ if (-not $SkipDownloads) {
     }
 
     $entry = $lock.$renamed
-    $tmp = Join-Path $env:TEMP "skills-restore-$(Get-Random)"
+    $tmp = Join-Path $env:TEMP "skills-install-$(Get-Random)"
     git clone -q --depth 1 "https://github.com/$($entry.source).git" $tmp
     $dest = "$claude\skills\$renamed"
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }

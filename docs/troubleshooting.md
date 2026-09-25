@@ -18,7 +18,7 @@
 - Check that the files are there: `~/.claude/skills/team-build/SKILL.md`, and 9 files in `~/.claude/agents/`.
 - After a `git pull` of this repo, copy the updated files in:
   ```powershell
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SkipDownloads
   ```
 
 ## A hook blocks something it shouldn't

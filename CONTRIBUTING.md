@@ -6,7 +6,7 @@
 2. Edit the files in this repo: personas in `agents/`, the skill and its checklists in `skills/team-build/`, hooks in `hooks/`, or the docs in `docs/`.
 3. Install your version, which copies it into your `~/.claude`:
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SkipDownloads
    ```
 4. If you changed a hook or a script, check that the hook tests end with `FAILURES: 0`. The installer runs them, or you can run them yourself:
    ```powershell
@@ -27,7 +27,7 @@ Every `/team-build` retro starts with a `Process:` line: a hash of the persona, 
 ## Skills from the lock file
 
 - **Adding or removing a skill:** edit `skills-lock.json`. Each entry names the GitHub repo and the path of the skill's `SKILL.md`.
-- **Updating:** `restore.ps1`, run without `-SkipDownloads`, reinstalls every listed skill from its source.
+- **Updating:** `install.ps1`, run without `-SkipDownloads`, reinstalls every listed skill from its source.
 - **The renamed skill:** `design-system-nextlevelbuilder` is installed under that name because its original name, `design-system`, is already taken by a skill from `affaan-m/ecc`. The installer clones it and renames it automatically.
 
 ## For the maintainer
