@@ -1,50 +1,75 @@
-# Reinstalls every skill in skills-lock.json into ~/.claude/skills (global, all Claude Code sessions).
-# Usage: .\restore.ps1
+# Installs this Claude Code setup into ~/.claude (global, all Claude Code sessions):
+#   1. every third-party skill in skills-lock.json
+#   2. this repo's files: the 9 personas, /team-build (with its references and scripts),
+#      the custom skills (freeze, playwright-testing) and the 4 hooks with their test suite
+#   3. settings.json: skill list overrides, auto mode, and the hook wiring (merged, never overwritten)
+#   4. the Playwright MCP server and the Impeccable design plugin
+#   5. checks: lists any skill that failed to install and runs the hook test suite
+# Usage:
+#   .\restore.ps1                  full install
+#   .\restore.ps1 -SkipDownloads   only steps 2, 3 (without skill downloads) and 5: no npx, no network.
+#                                  Use it to update the team files after pulling, or to test the script.
+# Safe to re-run: files from this repo are overwritten with the repo's copy, settings are merged.
+param([switch]$SkipDownloads)
 $ErrorActionPreference = 'Stop'
+
+$claude = Join-Path $env:USERPROFILE '.claude'
 $lock = (Get-Content "$PSScriptRoot\skills-lock.json" -Raw | ConvertFrom-Json).skills
 
+# ---------------------------------------------------------------------------------------------
+# 1. Third-party skills from skills-lock.json
+# ---------------------------------------------------------------------------------------------
 # design-system-nextlevelbuilder shares the name "design-system" with the affaan-m/ecc skill,
 # so it is installed separately under its own name below.
 $renamed = 'design-system-nextlevelbuilder'
+if (-not $SkipDownloads) {
+    $bySource = @{}
+    foreach ($p in $lock.PSObject.Properties) {
+        if ($p.Name -eq $renamed) { continue }
+        $src = $p.Value.source
+        if (-not $bySource.ContainsKey($src)) { $bySource[$src] = @() }
+        $bySource[$src] += $p.Name
+    }
+    foreach ($src in $bySource.Keys) {
+        $names = $bySource[$src]
+        Write-Output "=== $src ($($names.Count) skills)"
+        npx -y skills@latest add $src -g -a claude-code --copy -y -s @names
+    }
 
-$bySource = @{}
-foreach ($p in $lock.PSObject.Properties) {
-    if ($p.Name -eq $renamed) { continue }
-    $src = $p.Value.source
-    if (-not $bySource.ContainsKey($src)) { $bySource[$src] = @() }
-    $bySource[$src] += $p.Name
+    $entry = $lock.$renamed
+    $tmp = Join-Path $env:TEMP "skills-restore-$(Get-Random)"
+    git clone -q --depth 1 "https://github.com/$($entry.source).git" $tmp
+    $dest = "$claude\skills\$renamed"
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+    Copy-Item -Recurse (Join-Path $tmp (Split-Path $entry.skillPath -Parent)) $dest
+    $md = "$dest\SKILL.md"
+    $text = [IO.File]::ReadAllText($md)
+    $text = ([regex]'(?m)^name:.*$').Replace($text, "name: $renamed", 1)
+    [IO.File]::WriteAllText($md, $text)
+    Remove-Item -Recurse -Force $tmp
 }
 
-foreach ($src in $bySource.Keys) {
-    $names = $bySource[$src]
-    Write-Output "=== $src ($($names.Count) skills)"
-    npx -y skills@latest add $src -g -a claude-code --copy -y -s @names
-}
-
-# Install the renamed design-system skill
-$entry = $lock.$renamed
-$tmp = Join-Path $env:TEMP "skills-restore-$(Get-Random)"
-git clone -q --depth 1 "https://github.com/$($entry.source).git" $tmp
-$dest = "$env:USERPROFILE\.claude\skills\$renamed"
-if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
-Copy-Item -Recurse (Join-Path $tmp (Split-Path $entry.skillPath -Parent)) $dest
-$md = "$dest\SKILL.md"
-$text = [IO.File]::ReadAllText($md)
-$text = ([regex]'(?m)^name:.*$').Replace($text, "name: $renamed", 1)
-[IO.File]::WriteAllText($md, $text)
-Remove-Item -Recurse -Force $tmp
-
-# Personas (subagents) and the /team-build skill
-$claude = "$env:USERPROFILE\.claude"
-New-Item -ItemType Directory -Force "$claude\agents" | Out-Null
+# ---------------------------------------------------------------------------------------------
+# 2. This repo's files
+# ---------------------------------------------------------------------------------------------
+New-Item -ItemType Directory -Force "$claude\agents", "$claude\skills", "$claude\hooks\tests" | Out-Null
 Copy-Item "$PSScriptRoot\agents\*.md" "$claude\agents\" -Force
-Copy-Item -Recurse -Force "$PSScriptRoot\skills\team-build" "$claude\skills\"
-Write-Output "Installed $((Get-ChildItem "$PSScriptRoot\agents\*.md").Count) personas and /team-build."
+foreach ($skill in 'team-build', 'freeze', 'playwright-testing') {
+    $dest = "$claude\skills\$skill"
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }   # drop files the repo no longer has
+    Copy-Item -Recurse -Force "$PSScriptRoot\skills\$skill" "$claude\skills\"
+}
+Copy-Item "$PSScriptRoot\hooks\*.ps1" "$claude\hooks\" -Force
+Copy-Item "$PSScriptRoot\hooks\tests\*.ps1" "$claude\hooks\tests\" -Force
+Write-Output "Installed $((Get-ChildItem "$PSScriptRoot\agents\*.md").Count) personas, /team-build, /freeze, playwright-testing and 4 hooks."
 
-# Show only skill names in the main skill list (personas still preload full skills).
-# Merges into existing settings.json without touching other settings.
+# ---------------------------------------------------------------------------------------------
+# 3. settings.json (merged into what is already there; other settings are kept)
+# ---------------------------------------------------------------------------------------------
 $settingsPath = "$claude\settings.json"
 $settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+
+# 3a. Show only skill names in the main skill list (personas still preload full skills).
 $overrides = [ordered]@{}
 if ($settings.PSObject.Properties.Name -contains 'skillOverrides') {
     foreach ($p in $settings.skillOverrides.PSObject.Properties) { $overrides[$p.Name] = $p.Value }
@@ -56,22 +81,57 @@ foreach ($name in 'orch-add-feature','orch-build-mvp','orch-change-feature','orc
     if ($overrides[$name] -eq 'name-only') { $overrides[$name] = 'off' }
 }
 $settings | Add-Member -NotePropertyName skillOverrides -NotePropertyValue ([pscustomobject]$overrides) -Force
-# Auto mode as the default permission mode (keeps any other permission settings)
+
+# 3b. Auto mode as the default permission mode (unless one is already set).
 if (-not ($settings.PSObject.Properties.Name -contains 'permissions')) { $settings | Add-Member -NotePropertyName permissions -NotePropertyValue ([pscustomobject]@{}) }
 if (-not $settings.permissions.defaultMode) { $settings.permissions | Add-Member -NotePropertyName defaultMode -NotePropertyValue 'auto' -Force }
-[IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 10))
 
-# Playwright MCP server (browser control for personas), user scope
-$mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
-if (-not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
+# 3c. Hook wiring. An entry is added only if no existing hook already runs that script,
+#     so re-running never duplicates a hook and never changes one you customised.
+$hookDir = ($claude -replace '\\', '/') + '/hooks'
+$wanted = @(
+    @{ event = 'PreToolUse';   matcher = 'Bash|PowerShell';        script = 'careful.ps1';         timeout = 15 },
+    @{ event = 'PreToolUse';   matcher = 'Edit|Write|NotebookEdit'; script = 'ownership-guard.ps1'; timeout = 15 },
+    @{ event = 'Stop';         matcher = $null;                    script = 'verify-gate.ps1';     timeout = 600 },
+    @{ event = 'SessionStart'; matcher = 'startup|compact|resume'; script = 'team-resume.ps1';     timeout = 15 }
+)
+if (-not ($settings.PSObject.Properties.Name -contains 'hooks')) { $settings | Add-Member -NotePropertyName hooks -NotePropertyValue ([pscustomobject]@{}) }
+foreach ($w in $wanted) {
+    $groups = @()
+    if ($settings.hooks.PSObject.Properties.Name -contains $w.event) { $groups = @($settings.hooks.($w.event)) }
+    $present = $false
+    foreach ($g in $groups) { foreach ($h in @($g.hooks)) { if ([string]$h.command -like "*$($w.script)*") { $present = $true } } }
+    if ($present) { Write-Output "Hook already wired: $($w.script)"; continue }
+    $cmd = [pscustomobject]@{ type = 'command'; command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$hookDir/$($w.script)`""; timeout = $w.timeout }
+    $group = if ($w.matcher) { [pscustomobject]@{ matcher = $w.matcher; hooks = @($cmd) } } else { [pscustomobject]@{ hooks = @($cmd) } }
+    $settings.hooks | Add-Member -NotePropertyName $w.event -NotePropertyValue (@($groups) + @($group)) -Force
+    Write-Output "Hook wired: $($w.event) -> $($w.script)"
+}
+[IO.File]::WriteAllText($settingsPath, (ConvertTo-Json -InputObject $settings -Depth 20))
 
-# Impeccable design plugin (skill + design hook), user scope
-$plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
-if ($plugins -notmatch 'impeccable@impeccable') {
-    npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
-    npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+# ---------------------------------------------------------------------------------------------
+# 4. Playwright MCP server and the Impeccable design plugin (user scope)
+# ---------------------------------------------------------------------------------------------
+if (-not $SkipDownloads) {
+    $mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
+    if (-not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
+
+    $plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
+    if ($plugins -notmatch 'impeccable@impeccable') {
+        npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
+        npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+    }
 }
 
-# Verify
-$missing = $lock.PSObject.Properties.Name | Where-Object { -not (Test-Path "$claude\skills\$_\SKILL.md") }
-if ($missing) { Write-Output "Missing: $($missing -join ', ')" } else { Write-Output "All $($lock.PSObject.Properties.Name.Count) skills installed." }
+# ---------------------------------------------------------------------------------------------
+# 5. Checks
+# ---------------------------------------------------------------------------------------------
+if (-not $SkipDownloads) {
+    $missing = $lock.PSObject.Properties.Name | Where-Object { -not (Test-Path "$claude\skills\$_\SKILL.md") }
+    if ($missing) { Write-Output "Missing skills: $($missing -join ', ')" } else { Write-Output "All $($lock.PSObject.Properties.Name.Count) skills installed." }
+}
+Write-Output "Running the hook test suite..."
+$results = & powershell -NoProfile -ExecutionPolicy Bypass -File "$claude\hooks\tests\test-hooks.ps1"
+$results | Where-Object { $_ -match '^FAIL ' } | ForEach-Object { Write-Output $_ }
+Write-Output ($results | Select-Object -Last 1)
+Write-Output "Start a new Claude Code session to pick up the changes."

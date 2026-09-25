@@ -1,0 +1,5 @@
+flowchart LR
+    SS[session start /<br/>compaction / resume] --> TR[team-resume.ps1<br/>adds: re-read the work file]
+    TC[Bash or PowerShell call] --> CA[careful.ps1<br/>deny / ask]
+    ED[Edit / Write call] --> OG[ownership-guard.ps1<br/>allow / deny]
+    ST[turn about to end] --> VG[verify-gate.ps1<br/>block while tests fail]

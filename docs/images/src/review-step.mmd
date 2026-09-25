@@ -1,0 +1,12 @@
+flowchart TD
+    M[measure the SOURCE diff<br/>tests and docs don't count] --> Q{over ~200 lines, or auth,<br/>payments, migrations, AI tools?}
+    Q -- no --> CORE[1 code-reviewer: core pass]
+    Q -- yes --> L[parallel lenses:<br/>testing + security always,<br/>performance, api-contract, data-migration as relevant]
+    L --> RT[red-team reviewer<br/>gets locations and invariants,<br/>NOT the other verdicts]
+    CORE --> MERGE
+    RT --> MERGE[merge by fingerprint path:line:category<br/>drop confidence < 5]
+    MERGE --> B{any BLOCKER or MAJOR?}
+    B -- yes --> REF[refute task: try to disprove each<br/>from the code or a test]
+    REF --> UP[UPHELD: routed for fixing]
+    REF --> RF[REFUTED: listed at Gate 2]
+    B -- no --> MIN[MINORs: quick ones fixed,<br/>rest listed at Gate 2]

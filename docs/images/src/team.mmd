@@ -1,0 +1,19 @@
+flowchart LR
+    subgraph Plan
+        A[architect]
+        D[ui-designer]
+    end
+    subgraph Build
+        F[frontend-dev]
+        B[backend-dev]
+        AI[ai-agent-engineer]
+        T[test-engineer]
+    end
+    subgraph Check
+        R[code-reviewer]
+        V[verifier]
+    end
+    subgraph Ship
+        O[devops]
+    end
+    A --> D --> F & B & AI --> T --> R --> V --> O
