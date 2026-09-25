@@ -13,24 +13,24 @@ The run's state lives here and in git, not in the conversation, so a compacted, 
 
 ## Sections
 
-| Section | Written by | What goes in it |
-|---|---|---|
-| Header | architect and coordinator | `Status` (`planning` while the architect writes, then `planned`, then `done` or `abandoned`), the branch, and the start commit that every later check compares against |
-| Direction | architect | The premises and approaches you chose from at Gate 0 (medium and large Features, and spec builds) |
-| Goal, Out of scope | architect | What "done" means, and what this run deliberately won't do |
-| Acceptance criteria | architect | `AC-n: <something observable> - verify by: <command or test>`. Criteria that a change replaces are marked as superseded. |
-| Interfaces and contracts | architect | Routes, request and response shapes, status codes, error formats, settings, AI limits |
-| Failure modes | architect | One row per thing that can go wrong: how it fails, whether it's handled, which AC tests it, what the user sees |
-| File ownership | architect | Which persona owns which files. It's copied into `.claude/team/ownership.json` before each step. |
-| Tasks | architect | `- [ ] T1 (persona): ... -> AC-n`, ticked when done |
-| Risks and open questions | architect | What's still uncertain, and questions for you |
-| Decisions | architect and coordinator | Each decision, with the alternatives rejected and why. It also records the work type, your gate answers, and the results of the architect's plan self-check. |
-| Handoff | coordinator | Where the run is and what comes next. It's rewritten at every step, so a new session can resume from it. |
-| Log | every persona except code-reviewer and verifier; the coordinator adds entries for personas that ran in parallel | One entry per step: date, persona, what it did, files changed |
-| Tally | coordinator | Every failed check and fix round, with its cause. Review findings are written here as soon as each reviewer reports. |
-| Verification | coordinator, from the verifier's and reviewers' reports | The baseline, then each check's verdict, evidence and fingerprint |
-| Cost | coordinator | One row per step: persona, whether it was a fix, tokens, tool uses, duration |
-| Retro | coordinator, at the end | What failed and why, cost by persona, what the checks caught |
+| Section (written by) | What goes in it |
+|---|---|
+| **Header** (architect and coordinator) | `Status` (`planning` while the architect writes, then `planned`, then `done` or `abandoned`), the branch, and the start commit that every later check compares against |
+| **Direction** (architect) | The premises and approaches you chose from at Gate 0 (medium and large Features, and spec builds) |
+| **Goal, Out of scope** (architect) | What "done" means, and what this run deliberately won't do |
+| **Acceptance criteria** (architect) | `AC-n: <something observable> - verify by: <command or test>`. Criteria that a change replaces are marked as superseded. |
+| **Interfaces and contracts** (architect) | Routes, request and response shapes, status codes, error formats, settings, AI limits |
+| **Failure modes** (architect) | One row per thing that can go wrong: how it fails, whether it's handled, which AC tests it, what the user sees |
+| **File ownership** (architect) | Which persona owns which files. It's copied into `.claude/team/ownership.json` before each step. |
+| **Tasks** (architect) | `- [ ] T1 (persona): ... -> AC-n`, ticked when done |
+| **Risks and open questions** (architect) | What's still uncertain, and questions for you |
+| **Decisions** (architect and coordinator) | Each decision, with the alternatives rejected and why. It also records the work type, your gate answers, and the results of the architect's plan self-check. |
+| **Handoff** (coordinator) | Where the run is and what comes next. It's rewritten at every step, so a new session can resume from it. |
+| **Log** (every persona except code-reviewer and verifier; the coordinator adds entries for personas that ran in parallel) | One entry per step: date, persona, what it did, files changed |
+| **Tally** (coordinator) | Every failed check and fix round, with its cause. Review findings are written here as soon as each reviewer reports. |
+| **Verification** (coordinator, from the verifier's and reviewers' reports) | The baseline, then each check's verdict, evidence and fingerprint |
+| **Cost** (coordinator) | One row per step: persona, whether it was a fix, tokens, tool uses, duration |
+| **Retro** (coordinator, at the end) | What failed and why, cost by persona, what the checks caught |
 
 ## A real example
 
@@ -51,6 +51,9 @@ Start commit: 5cc8cbb069c64649a389f519ec1f6d7097960417
 
 ## Goal
 Match POST /notes validation: a missing or invalid `city` gets 422 instead of 400, with the same error bodies.
+
+## Out of scope
+Everything else. The unparseable-URL response stays 400 `{"error":"bad request"}` (AC-14 of weather-open-meteo is unchanged). R2-R8 from weather-open-meteo stay open.
 
 ## Acceptance criteria
 Supersedes weather-open-meteo AC-3's status only (400 -> 422); its bodies, order and "0 fetch calls, 0 log lines" rules still hold.

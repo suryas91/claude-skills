@@ -1,27 +1,31 @@
-flowchart TB
-    U([You]) -->|/team-build request| C[Coordinator<br/>classifies, hands off, checks]
-    C -.- W[(work file<br/>plan, evidence, cost)]
-    C --> A[architect<br/>writes the plan]
-    A --> G1{{Gates 0 and 1<br/>you pick the approach and approve the plan}}
-    G1 --> D[ui-designer<br/>if the UI changes]
-    D --> BUILD
+%%{init: {'flowchart': {'nodeSpacing': 24, 'rankSpacing': 28, 'padding': 6}}}%%
+flowchart LR
+    subgraph PLAN [Plan]
+        direction TB
+        U([You]) -->|/team-build| C[Coordinator]
+        C --> A[architect<br/>writes the plan]
+        C -.- W[(work<br/>file)]
+        A --> G1{{Gates 0 and 1<br/>you approve the plan}}
+    end
     subgraph BUILD [Build]
-        direction LR
-        F[frontend-dev] ~~~ B[backend-dev] ~~~ AI[ai-agent-engineer] ~~~ T[test-engineer]
+        direction TB
+        D[ui-designer<br/>if the UI changes] --> X[builders in parallel<br/>frontend · backend · AI]
+        X --> T[test-engineer]
+        H{{hooks guard<br/>edits, commands}} -.- X
     end
-    H{{hooks guard every edit<br/>and shell command}} -.- BUILD
-    BUILD --> CHECK
-    subgraph CHECK [Check]
-        direction LR
-        R[code-reviewer] ~~~ V[verifier]
+    subgraph CHECK [Check and ship]
+        direction TB
+        R[code-reviewer] --> V[verifier]
+        V --> G2{{Gate 2<br/>you approve shipping}}
+        G2 --> O[devops]
     end
-    CHECK --> G2{{Gate 2<br/>you approve shipping}}
-    G2 --> O[devops]
+    PLAN --> BUILD --> CHECK
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     classDef guard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef store fill:#f1f5f9,stroke:#64748b,color:#0f172a
     class G1,G2 gate
     class H guard
     class W store
+    style PLAN fill:transparent,stroke:#94a3b8
     style BUILD fill:transparent,stroke:#94a3b8
     style CHECK fill:transparent,stroke:#94a3b8

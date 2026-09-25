@@ -11,7 +11,7 @@
 | **Council** | A second opinion used at Gate 0 when two approaches are close: four independent viewpoints (the coordinator, a skeptic, a pragmatist and a critic) argue the choice, and you see their verdict and the strongest dissent. |
 | **Direction** | The architect's first stage for medium and large Features, and spec builds: premises and 2–3 approaches for you to choose from at Gate 0. It ends with **Call: clear** (an obvious winner) or **Call: close** (a real trade-off, so the council gives a second opinion). |
 | **Eval / fixture mode / live** | For AI features: a set of test cases scored by graders. **Fixture mode** replays recorded model replies (free and deterministic, so every case must pass). **Live** calls the real model (paid, and needs your approval above the cost limit). |
-| **Final check** | The verifier's last, complete check before Gate 2: every AC, a clean install, the test suite against the baseline, and using the app in a browser. |
+| **Final check** | The verifier's last, complete check before Gate 2: every AC, a clean install, the test suite against the baseline, and, for user-facing changes, using the app in a browser. |
 | **Fingerprint** | A hash of the project's files (not the work file or persona notes). A verdict is only valid while the fingerprint is unchanged. See [Safety and evidence](safety-and-evidence.md#fingerprints). |
 | **Fix round** | One attempt to fix a failed check or an upheld finding. At most 2 per problem, and then the team asks you. |
 | **Full check** | The verifier's independent check of one stage's work: the plan (the "full check of the plan") or the builders' work (the "full check of the builders"). |

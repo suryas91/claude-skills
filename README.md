@@ -6,7 +6,7 @@ A Claude Code setup that turns one session into a small software team. You type 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
-  <img width="760" alt="Overview: you ask the coordinator; the architect plans; you pick an approach and approve the plan; the designer and builders build; the reviewer and verifier check; you approve shipping" src="docs/images/overview.png">
+  <img alt="Overview: you ask the coordinator; the architect plans; you pick an approach and approve the plan; the designer and builders build; the reviewer and verifier check; you approve shipping" src="docs/images/overview.png">
 </picture>
 
 ## Is it for you?
@@ -22,7 +22,7 @@ The tokens count against your Claude plan's usage limits, or your API bill if yo
 
 **Not yet proven:** the setup was tested with eight runs on one small Node.js project.
 - The deploy step never ran for real.
-- You answered the gates live only in the first run. After that, standing answers were given in advance ("approve the plan", "don't deploy").
+- The repo owner answered the gates live only in the first run. After that, they gave standing answers in advance ("approve the plan", "don't deploy").
 - Live AI evals were never paid for. AI features were only checked against recorded model replies.
 
 Treat deploying through the team as experimental for now. [Lessons learned](docs/lessons-learned.md) has the details.
@@ -54,7 +54,7 @@ Treat deploying through the team as experimental for now. [Lessons learned](docs
 **Back up `~/.claude` first** if you already use Claude Code. Close Claude Code, then run:
 
 ```powershell
-Copy-Item -Recurse "$HOME\.claude" "$HOME\.claude-backup-$(Get-Date -Format yyyyMMdd)"
+Copy-Item -Recurse "$HOME\.claude" "$HOME\.claude-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
 ```
 
 Then install:
@@ -102,6 +102,8 @@ Next time you run `/team-build` in that project, it finds the unfinished run and
   <img alt="The five flows side by side, with the approval gates G0, G1 and G2 in amber" src="docs/images/flows.png">
 </picture>
 
+*G0, G1 and G2 are your approval gates. G1\* is skipped for small bug fixes.*
+
 | Work type | Example | What's special |
 |---|---|---|
 | Feature | `/team-build add a chat assistant` | For medium and large features, the architect first proposes 2–3 approaches and you pick one (Gate 0). |
@@ -136,11 +138,17 @@ Everything goes into your user-level `~/.claude`, so it applies to **every** Cla
 
 ## Undo
 
-**Restore your backup.** Close Claude Code first. This discards everything created in `~/.claude` since the backup, including conversation history and memory.
+**Restore your backup.** Close Claude Code first. This discards everything created in `~/.claude` since the backup, including conversation history and memory. The Playwright MCP server is registered in `~/.claude.json`, outside that folder, so remove it too:
+
+```powershell
+npx -y @anthropic-ai/claude-code mcp remove playwright -s user
+```
+
+Then restore:
 
 ```powershell
 Remove-Item -Recurse -Force "$HOME\.claude"
-Copy-Item -Recurse "$HOME\.claude-backup-20260924" "$HOME\.claude"   # use your backup's folder name
+Copy-Item -Recurse "$HOME\.claude-backup-20260924-093000" "$HOME\.claude"   # use your backup's folder name
 ```
 
 **Or remove only what the installer added:**

@@ -4,19 +4,19 @@ Before this setup was shared, it was tested with eight `/team-build` runs on a s
 
 ## The runs
 
-| # | What was asked | Kind | Calls | Tokens | Serious findings |
-|---:|---|---|---:|---:|---:|
-| 1 | Weather endpoint (fixed test data) | Feature | – | – | 2 |
-| 2 | Weather from a live API | Feature | 27 | 2.76M | 1 |
-| 3 | `/notes/:id` returns 500, not 404 | Bug fix | 6 | 0.40M | 0 |
-| 4 | Missing city: 400 → 422 | Change | 8 | 0.44M | 0 |
-| 5 | Move notes routes into a module | Refactor | 13 | 0.76M | 0 |
-| 6 | Web page + AI summary + MCP tool | Spec build | 33 | 4.35M | 2 |
-| 7 | AI output checker, part 1 | Change | 15 | 1.24M | 1 |
-| 8 | AI output checker, part 2 | Change | 15 | 1.43M | 1 |
+| # | What was asked | Calls | Tokens | Major |
+|---:|---|---:|---:|---:|
+| 1 | Weather endpoint (test data) · *Feature* | – | – | 2 |
+| 2 | Weather from a live API · *Feature* | 27 | 2.76M | 1 |
+| 3 | `/notes/:id` gives 500, not 404 · *Bug fix* | 6 | 0.40M | 0 |
+| 4 | Missing city: 400 → 422 · *Change* | 8 | 0.44M | 0 |
+| 5 | Notes routes into a module · *Refactor* | 13 | 0.76M | 0 |
+| 6 | Page + AI summary + MCP tool · *Spec build* | 33 | 4.35M | 2 |
+| 7 | AI output checker, part 1 · *Change* | 15 | 1.24M | 1 |
+| 8 | AI output checker, part 2 · *Change* | 15 | 1.43M | 1 |
 
 - **Sizes:** runs 1 and 2 were medium-sized. The rest were small; run 6 was a spec build kept small on purpose.
-- **Serious findings** are MAJOR review findings. None was rated BLOCKER.
+- **Major** counts the MAJOR review findings. None was rated BLOCKER.
 - **Missing numbers:** run 1 predates the cost tracking.
 
 **Nothing was found after the review, except once.** In run 2 the final check caught a process problem: a persona had copied the start of a fake API key into its notes, which broke one of the checks. One fix round resolved it. Every run passed its final check before Gate 2.

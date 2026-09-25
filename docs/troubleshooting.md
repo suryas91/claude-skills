@@ -9,7 +9,7 @@
   npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
   npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
   ```
-- **Skills are listed as missing.** A download failed, usually because of the network. Run the installer again; it only fills in what's missing.
+- **Skills are listed as missing.** A download failed, usually because of the network. Run the installer again. It downloads and reinstalls every skill in the lock file, which also restores the missing ones.
 - **The hook tests don't end with `FAILURES: 0`.** Look at the `FAIL` lines above the summary, and open an issue with them. The hooks may not behave correctly until it's fixed. Run the installer from a normal folder, such as the cloned repo, not from inside another tool's temporary folder.
 
 ## `/team-build` doesn't appear, or the personas aren't found

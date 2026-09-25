@@ -19,7 +19,7 @@ flowchart TB
     C --> W
     C --> G
     P --> G
-    H{{hooks<br/>shell commands, edits,<br/>turn end, session start}} -.-> C & P
+    C & P -.- H{{hooks<br/>shell commands, edits,<br/>turn end, session start}}
     classDef guard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef store fill:#f1f5f9,stroke:#64748b,color:#0f172a
     class H guard

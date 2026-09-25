@@ -22,7 +22,7 @@ Every `/team-build` retro starts with a `Process:` line: a hash of the persona, 
 ## Diagrams
 
 - **Docs pages:** they use inline Mermaid, which GitHub draws itself in light and dark mode. Edit the block in the page.
-- **PNGs:** the README's overview and flows images are the only PNGs. [docs/images/README.md](docs/images/README.md) explains how to re-render them, and which colors to use.
+- **PNGs:** the README's overview and flows images are the only PNG diagrams. [docs/images/README.md](docs/images/README.md) explains how to re-render them, and which colors to use.
 
 ## Skills from the lock file
 

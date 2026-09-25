@@ -2,7 +2,7 @@
 
 `/team-build` first **classifies** the request into one of five kinds of work, then **sizes** it, then runs that kind's flow. Every flow ends the same way: review, final check, then Gate 2. The authoritative text is [`SKILL.md`](../skills/team-build/SKILL.md); this page explains it.
 
-The [README](../README.md#the-five-kinds-of-work) shows all five flows side by side. This page walks through each one. In the diagrams, the amber hexagons are your approval gates.
+The [README](../README.md#the-five-kinds-of-work) shows all five flows side by side. This page walks through each one. In the diagrams, the amber hexagons are your approval gates. On a phone, use a diagram's expand button to see it full size.
 
 **On this page:**
 - [Before any work starts](#before-any-work-starts)
@@ -182,9 +182,9 @@ The team stops and asks you at up to three points. Nothing is pushed, merged or 
 
 | Gate | When | What you see | What you decide |
 |---|---|---|---|
-| **Gate 0** | After the architect's direction (medium and large Features, and spec builds) | 3–5 premises, and 2–3 approaches with effort, risk, pros and cons, plus a recommendation. When the choice is close, also a "council" verdict: four independent viewpoints (the coordinator, a skeptic, a pragmatist and a critic) argue the choice. | Confirm or correct each premise, and pick an approach |
-| **Gate 1** | After the plan passes the verifier's check | The goal, every acceptance criterion, the key contracts, who owns which files, known gaps, tests that already fail, and open questions | Approve, or send it back |
-| **Gate 2** | After the final check, before any deploy | Every AC with its evidence, new vs. existing test failures, open findings, and the rollback plan. Anything the team couldn't check itself (DNS, OAuth settings, dashboards) is listed separately. | Yes or no on each listed item, then whether to deploy |
+| **Gate 0** | After direction (medium and large Features, spec builds) | 3–5 premises, and 2–3 approaches with effort, risk, pros and cons, plus a recommendation. When the choice is close, also a "council" verdict: four independent viewpoints (the coordinator, a skeptic, a pragmatist and a critic) argue the choice. | Confirm or correct each premise, and pick an approach |
+| **Gate 1** | After the plan check | The goal, every acceptance criterion, the key contracts, who owns which files, known gaps, tests that already fail, and open questions | Approve, or send it back |
+| **Gate 2** | After the final check | Every AC with its evidence, new vs. existing test failures, open findings, and the rollback plan. Anything the team couldn't check itself (DNS, OAuth settings, dashboards) is listed separately. | Yes or no on each listed item, then whether to deploy |
 
 **Before Gate 2, a ship checklist, when it applies.** It runs if you may deploy and the project has never been deployed to production, or if the change touches auth, model-calling endpoints or deploy config. devops then checks the whole repo read-only against [`ship-checklist.md`](../skills/team-build/references/ship-checklist.md). Serious problems are fixed first. Manual items, such as "a backup restore has been tested", are put to you one by one.
 

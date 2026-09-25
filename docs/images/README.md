@@ -7,14 +7,14 @@
 | Files | Used in | Source |
 |---|---|---|
 | `overview.png`, `overview-dark.png` | README | `src/overview.mmd` |
-| `flows.png`, `flows-dark.png` | docs/flows.md | `src/flows.mmd` |
+| `flows.png`, `flows-dark.png` | README | `src/flows.mmd` |
 
 **Screenshots:**
 
 | File | What it shows |
 |---|---|
 | `team-built-page.png` | The web page the team built in test run 6, running with no API key set |
-| `work-file.png` | The top of test run 4's work file, rendered the way GitHub renders Markdown |
+| `work-file.png`, `work-file-dark.png` | The top of test run 4's work file, rendered the way GitHub renders Markdown, in light and dark |
 
 ## Re-rendering a PNG
 
@@ -32,4 +32,4 @@ Keep diagrams narrow, about 1,000 px wide or less. GitHub shows images at most a
 - hooks and guards: `fill:#fee2e2,stroke:#dc2626,color:#7f1d1d`
 - files and state on disk: `fill:#f1f5f9,stroke:#64748b,color:#0f172a`
 
-The fills have dark text, so they stay readable in dark mode too.
+The fills have dark text, so they stay readable in dark mode too. In the dark PNG renders, stored state uses `fill:#1e293b,stroke:#64748b,color:#e2e8f0` instead, so it doesn't glare.
