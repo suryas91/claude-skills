@@ -1,5 +1,5 @@
 # test-hooks.ps1 - regression tests for the hooks in ~/.claude/hooks and the team-build scripts.
-# Run after ANY hook or script edit:  powershell -NoProfile -ExecutionPolicy Bypass -File ~/.claude/hooks/tests/test-hooks.ps1
+# Run after ANY hook or script edit:  powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\.claude\hooks\tests\test-hooks.ps1"
 # Each case pipes a Claude-Code-style JSON payload into a hook and checks the decision (golden cases,
 # idea from ruflo ADR-G013 and ADR-102, MIT). Uses a throwaway project under %TEMP%\claude and restores
 # ~/.claude/state files it touches. Prints FAILURES: 0 when everything passes; exit code = failure count.

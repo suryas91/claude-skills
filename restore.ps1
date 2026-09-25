@@ -5,10 +5,10 @@
 #   3. settings.json: skill list overrides, auto mode, and the hook wiring (merged, never overwritten)
 #   4. the Playwright MCP server and the Impeccable design plugin
 #   5. checks: lists any skill that failed to install and runs the hook test suite
-# Usage:
-#   .\restore.ps1                  full install
-#   .\restore.ps1 -SkipDownloads   only steps 2, 3 (without skill downloads) and 5: no npx, no network.
-#                                  Use it to update the team files after pulling, or to test the script.
+# Usage (Windows blocks local scripts by default, hence -ExecutionPolicy Bypass):
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1                  full install
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads   only steps 2, 3 and 5:
+#       no skill downloads, no npx, no network. Use it to update the team files after a git pull.
 # Safe to re-run: files from this repo are overwritten with the repo's copy, settings are merged.
 param([switch]$SkipDownloads)
 $ErrorActionPreference = 'Stop'
@@ -67,7 +67,10 @@ Write-Output "Installed $((Get-ChildItem "$PSScriptRoot\agents\*.md").Count) per
 # 3. settings.json (merged into what is already there; other settings are kept)
 # ---------------------------------------------------------------------------------------------
 $settingsPath = "$claude\settings.json"
-$settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+# Read and write as UTF-8 explicitly: Windows PowerShell 5.1 otherwise reads a BOM-less file as ANSI
+# and would corrupt any non-ASCII text in your existing settings.
+$utf8 = New-Object Text.UTF8Encoding $false
+$settings = if (Test-Path $settingsPath) { [IO.File]::ReadAllText($settingsPath, $utf8) | ConvertFrom-Json } else { [pscustomobject]@{} }
 
 # 3a. Show only skill names in the main skill list (personas still preload full skills).
 $overrides = [ordered]@{}
@@ -107,19 +110,28 @@ foreach ($w in $wanted) {
     $settings.hooks | Add-Member -NotePropertyName $w.event -NotePropertyValue (@($groups) + @($group)) -Force
     Write-Output "Hook wired: $($w.event) -> $($w.script)"
 }
-[IO.File]::WriteAllText($settingsPath, (ConvertTo-Json -InputObject $settings -Depth 20))
+[IO.File]::WriteAllText($settingsPath, (ConvertTo-Json -InputObject $settings -Depth 20), $utf8)
 
 # ---------------------------------------------------------------------------------------------
 # 4. Playwright MCP server and the Impeccable design plugin (user scope)
 # ---------------------------------------------------------------------------------------------
 if (-not $SkipDownloads) {
-    $mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
-    if (-not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
+    # The Claude CLI may report "not found" on stderr. Under 'Stop', Windows PowerShell 5.1 turns any
+    # native stderr output into a terminating error, so this step runs with 'Continue'.
+    $ErrorActionPreference = 'Continue'
+    try {
+        $mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
 
-    $plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
-    if ($plugins -notmatch 'impeccable@impeccable') {
-        npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
-        npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+        $plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
+        if ($plugins -notmatch 'impeccable@impeccable') {
+            npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
+            npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+        }
+    } catch {
+        Write-Output "Warning: could not set up the Playwright MCP server or the Impeccable plugin ($($_.Exception.Message)). Install them by hand; see the README."
+    } finally {
+        $ErrorActionPreference = 'Stop'
     }
 }
 

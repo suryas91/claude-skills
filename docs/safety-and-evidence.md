@@ -1,157 +1,168 @@
 # Safety and evidence
 
-A team of AI agents is only useful if you can trust its "PASS". This page covers the mechanisms that make a verdict mean something, and the four hooks that enforce rules instructions alone can't.
+A team of AI agents is only useful if you can trust its "PASS". This page covers what makes a verdict mean something, and the four hooks that enforce rules instructions alone can't.
 
-**Contents:**
+**On this page:**
 - [Evidence rules](#evidence-rules)
 - [The baseline](#the-baseline)
-- [Fingerprints (is the evidence still fresh?)](#fingerprints-is-the-evidence-still-fresh)
+- [Fingerprints](#fingerprints)
 - [The secret scan](#the-secret-scan)
 - [The four hooks](#the-four-hooks)
+- [Turning a hook off](#turning-a-hook-off)
 - [What is still up to you](#what-is-still-up-to-you)
 
 ## Evidence rules
 
 These run through every persona file and the skill:
-
-- **Claims aren't evidence.** A report, commit message or code comment is a claim. The verifier and code-reviewer re-run commands themselves.
-- **Negative claims need proof too.** "Not possible" or "pre-existing" needs a verbatim error, a doc citation or a run at the start commit.
-- **Green means green.** Read the runner's passed, failed and skipped counts, never just the exit code:
-  - zero tests executed is a FAIL;
-  - a test that passed only on retry is FLAKY, not passing;
-  - a passing subset is not a passing suite.
-- **Tests must be able to fail.** test-engineer shows each new test failing on the code before the change. In the review, the testing lens reverts each fix in a scratch copy: if no test fails, the fix has no test behind it (MAJOR).
-- **Nothing may lower the bar.** The final check flags:
-  - new `@ts-ignore`, `eslint-disable`, `skip` or `.only`;
+- **Claims aren't evidence.** A report, commit message or code comment is a claim. The verifier and code-reviewer re-run things themselves.
+- **"It was already broken" needs proof too.** A statement like "pre-existing" or "not possible" needs an exact error message, a documentation reference, or a run on the code from before the change.
+- **Read the counts, not the exit code.**
+  - Zero tests run is a FAIL.
+  - A test that passed only on a retry is flaky, not passing.
+  - Passing some of the tests isn't passing the suite.
+- **Tests must be able to fail.** test-engineer shows each new test failing on the code from before the change. The review's testing lens undoes each fix in a scratch copy; if no test fails, the fix has no test behind it, and that's a MAJOR finding.
+- **Nothing may quietly lower the bar.** The final check flags:
+  - new skipped tests, or "ignore this error" comments;
   - deleted or loosened assertions;
-  - raised timeouts;
-  - lowered thresholds.
+  - raised timeouts or lowered thresholds.
 
   Each one needs a recorded reason.
-- **Every finding is quoted.** Review findings quote the triggering line. "Safe" must cite the line that makes it safe, and "tested" must name the test.
-- **Failures fail closed.** A reviewer or verifier report that errored, was cut off, or lacks its verdict, fingerprint or an AC result counts as **missing coverage**, never as approval.
+- **Every finding is quoted.** Review findings quote the line that triggered them. "Safe" must cite the line that makes it safe, and "tested" must name the test.
+- **Missing means not approved.** A review or check report that errored, was cut off, or is missing its verdict counts as missing, never as approved.
 
 ## The baseline
 
-Before any code changes, the verifier runs the full suite at the start commit and records **every failing test by name**. Later checks compare against that list:
+Before anything changes, the verifier runs the full test suite and records **every failing test by name**. Later checks compare against that list:
+- a test that fails at the end but not at the start is a **new failure**, caused by the run;
+- a test that failed at the start and still fails is **pre-existing**. It's reported as "1 pre-existing failure, unchanged": never blamed on the run, and never hidden as "all green".
 
-- A test that fails at the end but not at the baseline is a **new failure**, caused by the run.
-- A test that failed at the baseline and still fails is **pre-existing**. It's reported as "1 pre-existing failure, unchanged", never hidden as "all green" and never blamed on the run.
+## Fingerprints
 
-## Fingerprints (is the evidence still fresh?)
+[`fingerprint.ps1`](../skills/team-build/scripts/fingerprint.ps1) prints a hash of the files in the project. It covers tracked and new files, and follows `.gitignore`. It leaves out the work file, the persona notes and the team's state folder, because those change without changing the product. It never touches your staging area.
 
-[`fingerprint.ps1`](../skills/team-build/scripts/fingerprint.ps1) prints a git tree hash of the files on disk, tracked and untracked, honouring `.gitignore`. It leaves out `docs/work/`, `.claude/agent-memory/` and `.claude/team/`, which change without changing the product. It builds the hash through a temporary index, so it never touches your real index.
-
-- **Same content, same hash.** The hash is the same across commits, amends and rebases. A verdict recorded with a fingerprint is valid **exactly while the fingerprint still matches**.
-- **Every verdict carries one.** Every verifier and code-reviewer report includes a `Fingerprint:` line. The verifier takes it at the start and at the end of its check; if they differ, the code changed while it was checking, and the verdict is FAIL.
-- **Review and final check must match.** If they differ, code changed after review, so the changed part is re-reviewed and the final check is re-run.
-- **Recomputed before Gate 2 and before deploy.** If it doesn't match the final check, the evidence is stale, and nothing is presented or deployed.
+- **Same content, same hash.** The hash doesn't change across commits, amends and rebases, so a verdict recorded with a fingerprint is still valid **exactly while the fingerprint matches**.
+- **Every verdict carries one.** Every verifier and code-reviewer report ends with a `Fingerprint:` line. The verifier takes one at the start and one at the end of its check; if they differ, the code changed while it was checking, and the verdict is FAIL.
+- **The review and the final check must match.** If their fingerprints differ, code changed after the review: the changed part is re-reviewed, and the final check is run again.
+- **It's recomputed before Gate 2 and before any deploy.** If it doesn't match the final check's, nothing is presented or deployed.
 
 ## The secret scan
 
-[`secret-scan.ps1`](../skills/team-build/scripts/secret-scan.ps1) runs before **every** commit the team makes: checkpoints, gate records, verdicts and the retro. It scans only the **staged** diff and prints `file:line  kind`, **never the matched value**. It detects:
+[`secret-scan.ps1`](../skills/team-build/scripts/secret-scan.ps1) runs before **every** commit the team makes. It scans only the files being committed, and prints `file:line  kind`, **never the secret itself**. It looks for:
 
 | Kind | Kind |
 |---|---|
 | Anthropic API key | Slack token |
 | OpenAI-style API key | Stripe **live** secret or restricted key (`sk_live_`, `rk_live_`) |
-| AWS access key id | Google API key |
+| AWS access key ID | Google API key |
 | GitHub token | Private key block |
-| GitLab token | Credentials in a **database or queue URL** (postgres, mysql, mongodb, redis, amqp) |
-| JWT | Hardcoded secret assignment (`api_key = "..."` and similar) |
-| A staged `.env` file (anything but `.env.example`) | |
+| GitLab token | A password inside a **database or queue URL** (postgres, mysql, mongodb, redis, amqp) |
+| JWT | A hardcoded secret, such as `api_key = "..."` |
+| A `.env` file being committed (anything but `.env.example`) | |
 
-It's pattern-based, so a secret in a format it doesn't know (an `https://user:pass@` URL, a Stripe test key, a custom token) isn't caught. It's a safety net, not a guarantee.
+It works by patterns, so a secret in a format it doesn't know isn't caught: an `https://user:pass@` URL, a Stripe test key, or a custom token. It's a safety net, not a guarantee.
 
-A hit blocks the commit. The file goes back to its owner, and you're told if a real secret may have been exposed. It will need rotating, because it stays in git history.
+**When it finds something,** the commit is stopped and the file goes back to its owner. You're told if a real secret may have been exposed; it will need replacing, because it stays in git history. The coordinator always commits exact file names, never "everything", so your own uncommitted files are never swept in.
 
-The coordinator always stages exact paths (`git add -- <path>`), never `git add -A`, so your own uncommitted files are never swept in.
+**Fake keys in tests** are built from pieces at runtime, so no key-shaped text appears in the source.
 
-**Fake keys in tests.** Test fixtures that need a fake key build it at runtime, so no key-shaped literal ever appears in the source. In the test runs the scan blocked four such literals, including one pasted into a persona's memory notes.
+In the test runs the scan stopped commits four times:
+- twice for a fake key that a test deliberately needed (it was then allowed and noted);
+- once for a key prefix that a persona had copied into its notes;
+- once for a test string that looked like a secret.
 
 ## The four hooks
 
-Hooks are PowerShell scripts that Claude Code runs automatically at fixed points. `restore.ps1` wires them into `~/.claude/settings.json`. They apply to **every** session, but three of them do nothing unless a `/team-build` run or a `/freeze` is active.
-
-![Where each hook runs](images/hooks.png)
+Hooks are PowerShell scripts that Claude Code runs automatically at fixed moments. The installer wires them into `~/.claude/settings.json`.
 
 ```mermaid
 flowchart LR
-    SS[session start /<br/>compaction / resume] --> TR[team-resume.ps1<br/>adds: re-read the work file]
-    TC[Bash or PowerShell call] --> CA[careful.ps1<br/>deny / ask]
-    ED[Edit / Write call] --> OG[ownership-guard.ps1<br/>allow / deny]
-    ST[turn about to end] --> VG[verify-gate.ps1<br/>block while tests fail]
+    SS[session start,<br/>compaction, resume] --> TR{{team-resume<br/>re-read the work file}}
+    TC[shell command] --> CA{{careful<br/>block or ask}}
+    ED[file edit] --> OG{{ownership-guard<br/>allow or block}}
+    ST[end of turn] --> VG{{verify-gate<br/>block while tests fail}}
+    classDef guard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class TR,CA,OG,VG guard
 ```
 
-### careful.ps1 (before every shell command)
-Adapted from gstack's `/careful`. Commands are matched as text, so it is a safety net, not a security boundary.
+`careful` runs in every project. The other three do nothing unless a `/team-build` run or a `/freeze` is active.
 
-| Decision | Commands |
+### careful (before every shell command)
+
+Adapted from gstack's `/careful`. It matches commands as text, so it's a safety net, not a security boundary.
+
+| It… | For |
 |---|---|
-| **Deny** | Recursive delete of a drive root or the home directory. Force-push to `main` or `master` as a single command (inside a chain of commands it asks instead). Stopping processes **by name** (`taskkill /IM`, `Stop-Process -Name`, `pkill`, `killall`). |
-| **Ask** | Other recursive deletes (except build folders such as `node_modules` or `dist`). SQL `DROP`, `TRUNCATE`, or `DELETE` without `WHERE`. Database resets. `git reset --hard`, `git clean -f`, discarding all changes. Force-deleting a branch. Dropping stashes. `kubectl delete`. Docker container and volume removal. Disk formatting (`Format-Volume`, `diskpart`). Other force pushes. |
-| **Ask** | Commands that would **print a secret into the transcript** (`gh auth token`, `printenv`, `cat .env`, cloud secret getters) unless the output is redirected or piped. |
-| **Ask** | Obfuscated commands (IFS splitting, base64 piped to a shell, encoded PowerShell). |
+| **blocks** | Killing programs **by name** (`taskkill /IM`, `Stop-Process -Name`, `pkill`, `killall`). Deleting a whole drive or your home folder. Force-pushing to `main` or `master`. The last two are blocked as single commands; inside a chain of commands, it asks instead. |
+| **asks first** | Other recursive deletes (build folders such as `node_modules` or `dist` are fine). SQL `DROP`, `TRUNCATE`, or `DELETE` without `WHERE`. Database resets. `git reset --hard`, `git clean -f`, discarding all changes. Force-deleting a branch. Dropping stashes. `kubectl delete`. Removing Docker containers or volumes. Formatting disks. Other force pushes. |
+| **asks first** | Commands that would **print a secret into the conversation**, such as `gh auth token`, `printenv` or `cat .env`, unless the output goes to a file or another command |
+| **asks first** | Disguised commands: base64 piped to a shell, encoded PowerShell |
 
-Why deny killing processes by name? Stopping `node` by name would also kill Claude Code itself, and other people's tools. Every persona is told to note the PID of what it starts and stop only that PID.
+Why block killing programs by name? Stopping `node` by name also kills Claude Code itself, and anything else that uses Node. Every persona instead notes the process ID of what it starts, and stops only that.
 
-### ownership-guard.ps1 (before every Edit or Write)
+### ownership-guard (before every file edit)
+
 Two checks:
-1. **Ownership (during `/team-build`).** Before each persona call, the coordinator writes `.claude/team/ownership.json`, listing which globs each persona may edit.
-   - The hook **denies** a persona's edit outside its globs *before* it happens.
-   - Each persona may always write its own `.claude/agent-memory/<persona>/`, but not another persona's.
-   - The main session and non-team agents aren't restricted.
-   - With no ownership file (no run in progress), everything is allowed.
-2. **Freeze (any session).** After `/freeze src/auth tests/auth`, every session and subagent may edit only inside those folders, until `/freeze off`. Memory folders and the session scratchpad stay writable.
+1. **Ownership, during `/team-build`.** Before each persona call, the coordinator writes `.claude/team/ownership.json`, listing the files each persona may edit.
+   - The hook blocks a persona's edit to any other file **before it happens**.
+   - A persona may always write its own notes folder, but not another persona's.
+   - The main session, and agents not in the list, aren't restricted.
+   - With no ownership file, nothing is restricted.
+2. **Freeze, in any session.** After `/freeze src/auth tests/auth`, every session and helper may edit only inside those folders, until `/freeze off`. Notes folders and the session's scratch space stay writable.
 
-The hook can't see edits made through shell commands, so the coordinator's quick check also compares `git status` against ownership after every persona.
+The hook can't see edits made through shell commands. So after each persona, the coordinator also compares what actually changed with what that persona owns.
 
-**When a hook itself fails:**
+### verify-gate (when a turn is about to end)
 
-| Hook | Behaviour on failure |
-|---|---|
-| `ownership-guard` | An error while checking denies the edit (fails closed), because a crashed guard would otherwise let it through. If the tool payload can't be read at all, the edit is allowed. |
-| `careful` | Asks you, instead of silently allowing the command |
-| `team-resume` | Adds nothing |
-| `verify-gate` | Lets the turn end |
-
-### verify-gate.ps1 (when a turn is about to end)
-While armed, the coordinator **can't end its turn while the unit tests fail**:
-- **When:** it's armed after the builders' full check passes.
+While it's armed, the coordinator **can't stop while the unit tests fail**.
+- **When:** it's armed after the builders' work passes its check.
 - **Which command:** the unit test command from `CLAUDE.md`.
-- **Cap:** after 3 consecutive blocks it lets the turn end with a warning instead of looping.
-- **Time limits:** the test command has 8 minutes, and the hook as a whole 10. A test suite slower than that counts as failing, so leave the gate unarmed on very slow suites.
-- **Not with pre-existing failures:** it's never armed on a project whose baseline already has failing unit tests, because it can't tell old failures from new ones.
+- **No loops:** after 3 blocks in a row, it lets the turn end with a warning.
+- **Time limits:** the test command gets 8 minutes, and the hook 10. A slower suite counts as failing, so leave the gate off for very slow suites.
+- **Not with existing failures:** it's never armed when tests already failed at the start, because it can't tell old failures from new ones.
 
-**The trust model.** The gate file (`.claude/team/verify-gate.json`) lives in the project, so a cloned repo could ship a malicious one. So:
-- the gate runs a command only if `~/.claude/state/verify-gate-trust.json` maps this project to the SHA-256 of that exact command;
-- only [`arm-gate.ps1`](../skills/team-build/scripts/arm-gate.ps1) writes both files.
-
-A gate file that arrives with a clone, or is edited later, is ignored rather than executed.
+**Why a cloned repo can't abuse it.** The gate's settings file lives in the project, so a repo you clone could ship a malicious one. So the gate runs a command only if your own `~/.claude/state/verify-gate-trust.json` records that exact command for that project, and only [`arm-gate.ps1`](../skills/team-build/scripts/arm-gate.ps1) writes that record. A gate file that arrives with a clone is ignored.
 
 ```powershell
 $gate = "$HOME/.claude/skills/team-build/scripts/arm-gate.ps1"
-powershell -NoProfile -File $gate -Project "C:\path\to\project" -Command "npm test"  # arm and trust
-powershell -NoProfile -File $gate -Project "C:\path\to\project" -Disarm              # pause (e.g. before stopping to ask you)
-powershell -NoProfile -File $gate -Project "C:\path\to\project" -Rearm               # resume with the same trusted command
-powershell -NoProfile -File $gate -Project "C:\path\to\project" -Remove              # remove the gate and its trust record
+powershell -NoProfile -File $gate -Project "C:\path\to\project" -Command "npm test"   # arm and trust
+powershell -NoProfile -File $gate -Project "C:\path\to\project" -Disarm               # pause
+powershell -NoProfile -File $gate -Project "C:\path\to\project" -Rearm                # resume
+powershell -NoProfile -File $gate -Project "C:\path\to\project" -Remove               # remove
 ```
 
-### team-resume.ps1 (session start, compaction and resume)
-If `.claude/team/ownership.json` exists, a run is in progress. The hook adds a message to the session telling it to re-read `SKILL.md` and the work file (the Handoff, Decisions, Log and Verification) before doing anything, so a compacted or restarted session doesn't lose the current step, the approved gates or the fix-round tally. At a fresh start, the skill's preflight then offers to **resume or abandon**.
+### team-resume (session start, compaction, resume)
+
+If a run is in progress in the project, it tells the session to re-read the skill and the work file before doing anything else. That way a compacted or restarted session doesn't lose track of the current step, the approved gates or the fix rounds. On a fresh start, `/team-build` then offers to resume or abandon the run.
+
+### If a hook itself breaks
+
+| Hook | What happens |
+|---|---|
+| ownership-guard | An error while checking blocks the edit, because a broken guard would otherwise let it through. If it can't read the request at all, the edit is allowed. |
+| careful | It asks you, rather than silently allowing the command. |
+| verify-gate | It lets the turn end. |
+| team-resume | It adds nothing. |
 
 ### Testing the hooks
-[`hooks/tests/test-hooks.ps1`](../hooks/tests/test-hooks.ps1) pipes Claude-Code-style JSON payloads into each hook and checks the decisions: about 70 golden cases, including the secret scan and the trust model. It uses a throwaway project in `%TEMP%`, and restores any state files it touches. `restore.ps1` runs it at the end. Run it yourself after changing any hook or script:
+
+[`hooks/tests/test-hooks.ps1`](../hooks/tests/test-hooks.ps1) feeds each hook about 70 sample requests and checks the decisions, including the secret scan and the gate's trust rules. It uses a throwaway project, and restores any state it touches. The installer runs it at the end. Run it yourself after changing any hook or script:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File "$HOME\.claude\hooks\tests\test-hooks.ps1"
-# ... ends with: FAILURES: 0
 ```
+
+It should end with `FAILURES: 0`.
+
+## Turning a hook off
+
+Open `~/.claude/settings.json` and remove the hook's entry under `hooks`, then start a new session.
+
+Re-running `restore.ps1` adds any missing hook back, so remove it again after reinstalling or updating.
 
 ## What is still up to you
 
-The team marks anything it can't check itself as **UNVERIFIED**, and lists it separately at Gate 2 for a yes or no. Typical examples:
-- hosting environment variables, DNS and OAuth redirect URLs;
-- third-party dashboards, such as a spend limit in the Anthropic console;
-- live model quality, when no API key was available or the paid eval wasn't approved;
+The team marks anything it can't check itself as **UNVERIFIED**, and lists it separately at Gate 2 for your yes or no. Typically:
+- hosting settings, DNS and OAuth redirect URLs;
+- third-party dashboards, such as a spending limit in the Anthropic console;
+- live AI quality, when no API key was available or the paid eval wasn't approved;
 - whether a backup restore has actually been tested.

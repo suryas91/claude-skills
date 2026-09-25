@@ -17,7 +17,7 @@ You are the **coordinator**. You run the persona team on the request in `$ARGUME
 **Script paths:** write the team scripts as `"$HOME/.claude/skills/team-build/scripts/<name>.ps1"`, quoted, as below. That form works from both Bash and PowerShell. A `~/.claude/...` path fails when PowerShell's `-File` receives it.
 
 ## 0. Preflight (you do this directly, before calling any persona)
-0. **Unfinished run: resume or abandon.** An earlier run didn't finish if `.claude/team/ownership.json` or `.claude/team/verify-gate.json` exists, or if a `docs/work/*.md` has a Status other than `done` and a matching `team/<slug>` branch. Show the user that work file's `## Handoff` section and its last Verification entry, then ask whether to resume or abandon.
+0. **Unfinished run: resume or abandon.** An earlier run didn't finish if `.claude/team/ownership.json` or `.claude/team/verify-gate.json` exists, or if a `docs/work/*.md` has a Status other than `done` or `abandoned` and a matching `team/<slug>` branch. Show the user that work file's `## Handoff` section and its last Verification entry, then ask whether to resume or abandon.
    - **Resume:**
      1. Check out its branch and recompute the fingerprint (section 3).
      2. If the fingerprint differs from the Handoff's, re-run the last check the Handoff lists before going further.

@@ -1,124 +1,124 @@
 # The work file
 
-Every run keeps one Markdown file in your project: `docs/work/<slug>.md`. It is the run's single source of truth: the plan, every decision, every check with its evidence, what everything cost, and where the run is right now.
+Every run keeps one Markdown file in your project: `docs/work/<slug>.md`. It holds the run's whole record: the plan, every decision, every check with its evidence, what everything cost, and where the run is right now.
 
-The coordinator's state lives here and in git, not in the conversation. That means a compacted, crashed or restarted session can carry on from this file alone.
+The run's state lives here and in git, not in the conversation. A compacted, crashed or restarted session can carry on from this file alone.
 
-![A work file from a real run](images/work-file.png)
+![The top of a real work file, as GitHub shows it](images/work-file.png)
+
+*The top of the work file from test run 4, as GitHub renders it.*
 
 ## Sections
 
 | Section | Written by | What goes in it |
 |---|---|---|
-| Header (`Status`, `Branch`, `Start commit`) | architect, coordinator | `Status`: `planning` (the architect is writing), then `planned`, then `done` (or `abandoned`). The start commit is what every later check diffs against. |
-| **Direction** | architect (medium and large work) | Premises and 2–3 approaches for Gate 0. For small work, a note on why it was skipped. |
-| **Goal** / **Out of scope** | architect | What done means, and what this run deliberately doesn't do |
-| **Acceptance criteria** | architect | `AC-n: <observable statement> - verify by: <command or test>`. They're numbered, testable, and include failure behaviour. A superseded criterion is struck through, not deleted. |
-| **Interfaces and contracts** | architect | Routes, request and response shapes, status codes, error formats, env var names, AI call limits, data-flow diagrams |
-| **Failure modes** | architect | One row per codepath or external call: how it fails, whether it's handled, the covering AC, what the user sees, whether it's logged |
-| **File ownership** | architect | Which persona owns which paths. The coordinator copies this into `.claude/team/ownership.json` before each persona call. |
-| **Tasks** | architect | `- [ ] T1 (persona): ... -> AC-n`, ticked when done |
-| **Risks and open questions** | architect | Residual risks, anything unmeasured, and questions for you |
-| **Decisions** | architect and coordinator | ADR-style entries: what was chosen, what was rejected and why. They also record the classification, the gate answers, the eval-set hash, and the architect's plan self-check results. |
-| **Handoff** | coordinator (rewritten at every checkpoint) | The current step, the next 1–3 actions, the gates approved, the fix-round tally, whether the verify gate is armed, the last fingerprint and running processes. A fresh session can resume from this alone. |
-| **Log** | every persona | One entry per persona call: date, persona, what it did, files changed |
-| **Tally** | coordinator | Each failed check and fix round, with its cause. Review findings are written here **as soon as each reviewer returns**. |
-| **Verification** | coordinator (from verifier and reviewer reports) | The baseline, then each check's verdict with its evidence and `Fingerprint:` |
-| **Cost** | coordinator | One row per persona call: persona, step, whether it was a fix round, tokens, tool uses, duration |
-| **Retro** | coordinator, at finish | `Process:` hash, `KPI:` line, failures by cause, cost by persona, what the verifier caught, what was slow |
+| Header | architect and coordinator | `Status` (`planning` while the architect writes, then `planned`, then `done` or `abandoned`), the branch, and the start commit that every later check compares against |
+| Direction | architect | The premises and approaches you chose from at Gate 0 (medium and large Features, and spec builds) |
+| Goal, Out of scope | architect | What "done" means, and what this run deliberately won't do |
+| Acceptance criteria | architect | `AC-n: <something observable> - verify by: <command or test>`. A superseded criterion is struck through, not deleted. |
+| Interfaces and contracts | architect | Routes, request and response shapes, status codes, error formats, settings, AI limits |
+| Failure modes | architect | One row per thing that can go wrong: how it fails, whether it's handled, which AC tests it, what the user sees |
+| File ownership | architect | Which persona owns which files. It's copied into `.claude/team/ownership.json` before each step. |
+| Tasks | architect | `- [ ] T1 (persona): ... -> AC-n`, ticked when done |
+| Risks and open questions | architect | What's still uncertain, and questions for you |
+| Decisions | architect and coordinator | Each decision, with the alternatives rejected and why. Also the work type, your gate answers, and the results of the architect's plan self-check. |
+| Handoff | coordinator | Where the run is and what comes next. Rewritten at every step, so a new session can resume from it. |
+| Log | every persona except code-reviewer and verifier (the coordinator adds entries for personas that ran in parallel) | One entry per step: date, persona, what it did, files changed |
+| Tally | coordinator | Every failed check and fix round, with its cause. Review findings are written here as soon as each reviewer reports. |
+| Verification | coordinator, from the verifier's and reviewers' reports | The baseline, then each check's verdict, evidence and fingerprint |
+| Cost | coordinator | One row per step: persona, whether it was a fix, tokens, tool uses, duration |
+| Retro | coordinator, at the end | What failed and why, cost by persona, what the checks caught |
 
-## Excerpts from a real run
+## A real example
 
-These come from `sentence-stop-hardening`, a small Change in the test project that hardened an AI output checker against a hidden second sentence.
+These excerpts come from **test run 4**: an API returned status 400 for a missing city, and the request was to return 422 instead. It's a small Change, so there is no direction stage. In this older run the coordinator wrote the plan itself; small plans are now written by the architect ([why](lessons-learned.md#what-changed-and-why)).
 
-**Header and an acceptance criterion.** Note the struck-through text, where a fix round amended the criterion:
+**Header, goal and an acceptance criterion:**
 
 ```markdown
-# Harden checkSummary: closers after a stop, marks after the final stop
+# Change: GET /weather returns 422 (not 400) for a missing or invalid city
 Status: done
-Branch: team/sentence-stop-hardening
-Start commit: 0b6ccef
+Branch: team/weather-422
+Start commit: 5cc8cbb069c64649a389f519ec1f6d7097960417
 
-- AC-1: after NFKC, place masking and mark removal, a sentence end is one of `.`, `!` or `?`,
-  followed by zero or more **closers**, followed by whitespace, the end of the text, or a letter.
-  ~~Closers are the Unicode categories Pe, Pi, Pf and Pd, plus U+0022 and U+0027.~~
-  **Amended in review fix round 1 (D9):** a closer is any code point that is not a letter, a
-  decimal digit, whitespace, `.`, `!`, `?` or U+3002.
-  - New `multi_sentence` (each one gives `null` at 0b6ccef):
-    - `B` + `.` + U+0022 + ` Buy gold now.`
-    ...
-  - verify by: `node --test test/summary.check.test.js`
+## Goal
+Match POST /notes validation: a missing or invalid `city` gets 422 instead of 400, with the same
+error bodies.
+
+## Acceptance criteria
+- AC-1: GET /weather with no city, `city=` or whitespace-only returns 422 `{"error":"city is required"}`;
+  over 100 code points or control characters returns 422 `{"error":"city is invalid"}`. Still 0 fetch
+  calls and 0 log lines. - verify by: `node --test test/weather.route.test.js …` passes; before the
+  code change, exactly 10 tests fail.
 ```
 
-**A failure-modes row:**
+**Decisions, including a gate answer:**
 
 ```markdown
-| Codepath | How it fails | Handled? | Test (AC) | User sees | Logged? |
-|---|---|---|---|---|---|
-| Final-stop rule rejects a valid summary | The model puts a mark (for example U+FE0F) after the final stop | Accepted: fails safe | AC-2 | muted notice | same |
+- D1 (coordinator): **Change, small.** The route works; the user wants different behavior ("instead of
+  400, return 422"). One status in one file, plus tests and README; no new interfaces. …
+- D5 (GATE 1): plan approved (AC-1..AC-3, non-functional N/A). Baseline pre-existing failure:
+  GET /notes/:id (out of scope on this branch).
 ```
 
-**A superseded decision.** It's kept for the record rather than deleted:
+**The Tally, recording what went wrong.** The plan check caught a flaw in the plan, and the tests caught a miscount:
 
 ```markdown
-- D2 (architect) [SUPERSEDED by D9 in review fix round 1; kept for the record]: the closer class
-  is Pe, Pi, Pf and Pd, plus U+0022 and U+0027.
-- D9 (architect, review fix round 1, RV1; supersedes D2): the closer class becomes a negated
-  class: any code point that is not a letter, a decimal digit, whitespace, `.`, `!`, `?` or U+3002.
+- F1: full check of plan (verifier) FAIL, coordinator (small-path plan author): … a verify-by that
+  ignores the baseline … Fix round 1 by the coordinator.
+- F2 (miss, not a failed check): the plan and the verifier plan check both counted 9 fail-before
+  tests; test-engineer measured 10. … the executed fail-before run is the authority.
 ```
 
-**A review finding in the Tally**, written the moment the reviewer returned:
+**Verification, each verdict with its fingerprint:**
 
 ```markdown
-- Review (code-reviewer, core, 1a83da0): CHANGES REQUESTED. Fingerprint: 7820f467...
-  - RV1 MAJOR (8/10, fp src/summary.js:68:security-partial-fix): the closer allow-list leaves
-    about 9,400 code points after a stop that still hide a second sentence: `.;` `.:` `.$`,
-    plain emoji, and more. It is not a regression, but it is an equivalent open path.
+- Baseline (verifier, 5cc8cbb): BASELINE RECORDED. npm test 189 tests, 188 pass, 1 fail:
+  "GET /notes/:id returns 404 for an unknown id" (pre-existing …).
+- Full check of builders (verifier, 8b0f34c): PASS. … fail-before count 10 confirmed on start-commit
+  src; bad-URL 400 and all other mappings unchanged … Fingerprint: e1dffd88…
+- Final check (verifier, 3286683): PASS. … Fingerprint: e1dffd88… (matches core pass …)
 ```
 
-**The Handoff at the end of the run:**
+**The Handoff at the end:**
 
 ```markdown
 ## Handoff
-- Flow: Change (small). DONE: final check PASS, Gate 2 (D12, no deploy), retro written.
-- Next actions: none in this run.
-- Gates approved: Gate 1 (D8), Gate 2 (D12). Fix rounds: review 1/2, resolved.
-  Verify gate: not armed (removed). Last fingerprint: 50399ac8... Processes: none.
+- Flow: Change (small). Step: DONE. Gate 2 answered (D7): no deploy. Retro written; guard removed.
+- Next actions: none. Branch team/weather-422 left unmerged; nothing pushed.
+- Gates approved: Gate 1 (D5), Gate 2 (D7).
+- Fix rounds: plan 1/2 (resolved). Verify gate: never armed (baseline failure on this branch).
+- Last fingerprint: e1dffd88b77f42b8fbdf82bad9d4242c644dcf8a. Processes: none.
 ```
 
-**The Cost table:**
+**Cost, one row per step:**
 
 ```markdown
 | Persona | Step | Fix round | Tokens | Tool uses | Duration |
 |---|---|---|---|---|---|
-| verifier | baseline | no | 53919 | 8 | 54.5 s |
-| architect | small plan (stage 2) | no | 129483 | 30 | 338.3 s |
-| verifier | full check of plan | no | 87659 | 21 | 378.8 s |
-| test-engineer | T1 fail-first tests | no | 96613 | 17 | 154.9 s |
-| ai-agent-engineer | T2 two-line change | no | 128987 | 7 | 60.7 s |
-| code-reviewer | review core pass | no | 158443 | 19 | 211.5 s |
-| architect | plan update for RV1 (review fix round 1) | yes | 150775 | 42 | 494.1 s |
-...
+| verifier | baseline + plan check | no | 66900 | 10 | 91.4 s |
+| verifier | plan re-check (resume) | yes | n/a (resumed) | n/a | n/a |
+| test-engineer | T1 update tests | no | 77290 | 18 | 117.6 s |
+| backend-dev | T2 change | no | 70503 | 12 | 57.1 s |
+| verifier | full check of builders | no | 70586 | 13 | 96.0 s |
+| code-reviewer | core pass | no | 92480 | 13 | 62.7 s |
+| verifier | final check | no | 60928 | 12 | 76.4 s |
 ```
 
 **The start of the Retro:**
 
 ```markdown
 ## Retro
-Process: 3c7f61e3cb4c
-KPI:
-- 1 failed check: the review MAJOR RV1. The plan check passed on the first attempt.
-- 1 fix round (review).
-- 1 BLOCKER/MAJOR finding, 0 refuted.
-- 0 defects found after the review.
-- 0 user corrections at gates.
-- 15 persona calls; 1,430,993 subagent tokens.
+Process: 5f63747efc1e
+KPI: failed checks 1 (plan check, coordinator-authored plan) | fix rounds 1 | BLOCKER/MAJOR 0 |
+defects found after review 0 | user corrections at gates 0 | persona calls 8 |
+subagent tokens about 439k | agent time about 9 min
 ```
 
 ## Reading a work file
 
-- **Where is the run now?** Read **Handoff**.
-- **Why was something done this way?** Read **Decisions**. Superseded decisions stay visible.
-- **Can I trust the result?** Read **Verification** bottom-up. The last final check should say PASS, list every AC, and carry the same fingerprint as the last review.
-- **What went wrong along the way?** Read **Tally**.
-- **Was it worth it?** Read **Cost** and **Retro**.
+- **Where is the run now?** Read the Handoff.
+- **Why was something done this way?** Read the Decisions. Superseded decisions stay visible.
+- **Can I trust the result?** Read Verification from the bottom up. The last final check should say PASS, cover every AC, and carry the same fingerprint as the last review.
+- **What went wrong along the way?** Read the Tally.
+- **Was it worth it?** Read the Cost table and the Retro.

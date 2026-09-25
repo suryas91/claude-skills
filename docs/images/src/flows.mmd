@@ -1,23 +1,23 @@
 flowchart LR
     subgraph S [Spec build]
         direction LR
-        s1[direction<br/>from spec] --> s0{{G0}} --> s2[slice plan] --> s1g{{G1}} --> s3[Feature flow<br/>for slice 1] --> s4[show you] --> s5[next slices]
+        s1[approaches<br/>from the spec] --> s0{{G0}} --> s2[slice plan] --> s1g{{G1}} --> s3[slice 1 as<br/>a Feature] --> s4[show you,<br/>then next slice]
     end
     subgraph R [Refactor]
         direction LR
-        r1[plan: no<br/>behaviour change] --> r1g{{G1}} --> r2[characterization<br/>tests] --> r3[restructure] --> r4[review] --> r5[final: same<br/>tests pass] --> r2g{{G2}}
+        r1[plan: no<br/>behavior change] --> r1g{{G1}} --> r2[pin today's<br/>behavior] --> r3[restructure] --> r4[review +<br/>final check] --> r2g{{G2}}
     end
     subgraph B [Bug fix]
         direction LR
-        b1[failing test +<br/>root cause] --> b2[plan] --> b1g{{G1*}} --> b3[fix root cause] --> b4[review] --> b5[final] --> b2g{{G2}}
+        b1[failing test +<br/>root cause] --> b2[plan] --> b1g{{G1*}} --> b3[fix the<br/>root cause] --> b4[review +<br/>final check] --> b2g{{G2}}
     end
     subgraph C [Change]
         direction LR
-        c1[plan update] --> c1g{{G1}} --> c2[tests for new<br/>behaviour FAIL first] --> c3[build] --> c4[review] --> c5[final] --> c2g{{G2}}
+        c1[update<br/>the plan] --> c1g{{G1}} --> c2[new tests<br/>fail first] --> c3[build] --> c4[review +<br/>final check] --> c2g{{G2}}
     end
     subgraph F [Feature]
         direction LR
-        f1[direction] --> f0{{G0}} --> f2[plan] --> f1g{{G1}} --> f3[design] --> f4[build] --> f5[tests] --> f6[review] --> f7[final] --> f2g{{G2}}
+        f1[approaches] --> f0{{G0}} --> f2[plan] --> f1g{{G1}} --> f3[design +<br/>build + tests] --> f4[review +<br/>final check] --> f2g{{G2}}
     end
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class f0,f1g,f2g,c1g,c2g,b1g,b2g,r1g,r2g,s0,s1g gate

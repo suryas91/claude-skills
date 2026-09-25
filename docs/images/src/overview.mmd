@@ -1,25 +1,28 @@
-flowchart LR
-    U([You]) -->|/team-build request| C[Coordinator<br/>classifies, sizes,<br/>hands off, checks]
+flowchart TB
+    U([You]) -->|/team-build request| C[Coordinator<br/>classifies, hands off, checks]
+    C -.- W[(work file<br/>plan, evidence, cost)]
     C --> PLAN
     subgraph PLAN [Plan]
-        A[architect] --- D[ui-designer]
+        direction LR
+        A[architect] ~~~ D[ui-designer<br/>if the UI changes]
     end
-    PLAN -. medium and large work .-> G0{{Gate 0<br/>you pick an approach}}
-    G0 -.-> PLAN
-    PLAN --> G1{{Gate 1<br/>you approve the plan}}
+    PLAN --> G1{{Gates 0 and 1<br/>you pick the approach and approve the plan}}
     G1 --> BUILD
     subgraph BUILD [Build]
-        F[frontend-dev] --- B[backend-dev] --- AI[ai-agent-engineer] --- T[test-engineer]
+        direction LR
+        F[frontend-dev] ~~~ B[backend-dev] ~~~ AI[ai-agent-engineer] ~~~ T[test-engineer]
     end
+    H{{hooks guard every edit<br/>and shell command}} -.- BUILD
     BUILD --> CHECK
     subgraph CHECK [Check]
-        R[code-reviewer] --- V[verifier]
+        direction LR
+        R[code-reviewer] ~~~ V[verifier]
     end
     CHECK --> G2{{Gate 2<br/>you approve shipping}}
     G2 --> O[devops]
-    W[(work file:<br/>plan, evidence,<br/>cost, retro)] -.- C
-    H{{hooks enforce the rules:<br/>file ownership, risky commands,<br/>tests must pass, resume}} -.- BUILD
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     classDef guard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    class G0,G1,G2 gate
+    classDef store fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    class G1,G2 gate
     class H guard
+    class W store
