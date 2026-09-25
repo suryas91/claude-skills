@@ -6,24 +6,24 @@ A Claude Code setup that turns one session into a small software team. You type 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
-  <img alt="Overview: you ask the coordinator, which runs the plan, build and check personas, and asks you at Gate 0, Gate 1 and Gate 2" src="docs/images/overview.png">
+  <img width="760" alt="Overview: you ask the coordinator; the architect plans; you pick an approach and approve the plan; the designer and builders build; the reviewer and verifier check; you approve shipping" src="docs/images/overview.png">
 </picture>
 
 ## Is it for you?
 
 It suits work where being right matters more than being fast. Each step is planned, tested, reviewed and independently verified, and you approve the plan before anything is built. That costs far more tokens than doing the work in one session.
 
-| | Measured on a small test project |
+| Work | Measured on a small test project |
 |---|---|
-| Small change or bug fix | 6–15 subagent calls, 0.4–1.4 million tokens, roughly 10 minutes to an hour |
+| Small change or bug fix | 6–15 subagent calls, 0.4–1.4 million tokens, from about 10 minutes to about 1.5 hours |
 | First slice of a spec build (web page + AI summary + MCP tool) | 33 calls, about 4.4 million tokens |
 
-The tokens count against your Claude plan's usage limits, or your API bill if you use an API key. Each run records what every step cost, so you can see where the tokens went.
+The tokens count against your Claude plan's usage limits, or your API bill if you use an API key. On a smaller plan, one large run can use up much of a usage window. Each run records what every step cost, so you can see where the tokens went.
 
-**Not yet proven:** the setup was tested with eight runs on one small Node.js project. In those runs:
-- the deploy step never ran for real;
-- a person never answered the gates live (they were answered ahead of time);
-- live AI evals were never paid for, so AI features were only checked against recorded replies.
+**Not yet proven:** the setup was tested with eight runs on one small Node.js project.
+- The deploy step never ran for real.
+- You answered the gates live only in the first run. After that, standing answers were given in advance ("approve the plan", "don't deploy").
+- Live AI evals were never paid for. AI features were only checked against recorded model replies.
 
 Treat deploying through the team as experimental for now. [Lessons learned](docs/lessons-learned.md) has the details.
 
@@ -31,26 +31,33 @@ Treat deploying through the team as experimental for now. [Lessons learned](docs
 
 | Part | What it does | Where |
 |---|---|---|
-| `/team-build` | The coordinator. It classifies the work, runs the right flow, hands work between personas, checks every step, keeps a record, and asks you at the gates. | `skills/team-build/SKILL.md` |
+| `/team-build` | The coordinator. It classifies the work, runs the right flow, hands work between personas, checks every step, keeps a record, and asks you at the gates. | `skills/team-build/` |
 | 9 personas | Claude Code subagents, each with its own job, files, skills and report format | `agents/` |
-| Checklists | The review checklist, AI-feature standards, MCP and ship checklists, and a QA guide | `skills/team-build/references/` |
-| Scripts | Secret scan, evidence fingerprint, and the "tests must pass" gate | `skills/team-build/scripts/` |
+| Checklists | The review checklist, AI-feature standards, MCP and ship checklists, and a QA guide | `…/references/` |
+| Scripts | Secret scan, evidence fingerprint, and the "tests must pass" gate | `…/scripts/` |
 | 4 hooks | Enforce rules that instructions alone can't: file ownership, risky commands, tests must pass, resuming a run | `hooks/` |
 | Custom skills | `/freeze` (limit edits to some folders) and `playwright-testing` | `skills/` |
-| Third-party skills | About 360 skills from other repos, pinned in a lock file. The team uses about 70 of them; the rest are general-purpose skills you can use yourself. | `skills-lock.json` |
+| Third-party skills | About 360 skills from other repos, pinned in a lock file. The team uses about 65 of them; the rest are general-purpose skills you can use yourself. | `skills-lock.json` |
 | Installer | Installs everything and merges your settings. Safe to re-run. | `restore.ps1` |
 
 ## Install
 
 **You need:** Windows, [Claude Code](https://docs.claude.com/en/docs/claude-code), Git (with Git Bash) and Node.js. Windows PowerShell 5.1, which ships with Windows, is enough.
 
-**Back up `~/.claude` first** if you already use Claude Code. The installer changes global settings and overwrites files with the same names (see [What the installer changes](#what-the-installer-changes)):
+**Know what it changes before you install.** The installer affects every Claude Code session on your machine:
+- it downloads about 360 third-party skills;
+- it adds four hooks and a design plugin that runs on UI edits;
+- if you haven't chosen a permission mode, it sets it to `auto`.
+
+[What the installer changes](#what-the-installer-changes) has the details.
+
+**Back up `~/.claude` first** if you already use Claude Code. Close Claude Code, then run:
 
 ```powershell
-Copy-Item -Recurse "$HOME\.claude" "$HOME\.claude-backup"
+Copy-Item -Recurse "$HOME\.claude" "$HOME\.claude-backup-$(Get-Date -Format yyyyMMdd)"
 ```
 
-Then:
+Then install:
 
 ```powershell
 git clone https://github.com/suryas91/claude-skills
@@ -58,11 +65,13 @@ cd claude-skills
 powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1
 ```
 
-`-ExecutionPolicy Bypass` is needed because Windows blocks local scripts by default. The installer ends by running the hook tests, which should end with `FAILURES: 0`. Start a new Claude Code session afterwards.
+`-ExecutionPolicy Bypass` is needed because Windows blocks local scripts by default.
+
+The installer ends by running the hook tests, which should print `FAILURES: 0`. If it doesn't, or if the installer stops early, see [Troubleshooting](docs/troubleshooting.md#the-installer-fails-or-the-hook-tests-dont-pass). Start a new Claude Code session afterwards.
 
 ## Your first run
 
-Open a project that uses Git and type:
+Open a project folder (Git is set up for you if it isn't already) and type:
 
 ```
 /team-build add a dark-mode toggle to the settings page
@@ -77,14 +86,21 @@ The team:
 
 **What it changes in your project:**
 - All commits go on a new branch, `team/<slug>`, where the slug is a short name for the work (for example `team/dark-mode-toggle`). Nothing goes on `main`.
-- It adds a `## Project commands` section to your `CLAUDE.md`, and adds a few entries to `.gitignore`. If the folder isn't a Git repo yet, it runs `git init` first.
-- It keeps a record of the run in `docs/work/<slug>.md`, and per-persona notes in `.claude/agent-memory/`. Both are committed on the branch.
+- It adds a `## Project commands` section to your `CLAUDE.md`, and a few entries to `.gitignore`. If the folder isn't a Git repo yet, it runs `git init` first.
+- It keeps a record of the run in `docs/work/<slug>.md`, and notes for each persona in `.claude/agent-memory/`. Both are committed on the branch.
 
 [Files a run creates](docs/how-it-works.md#files-a-run-creates-in-your-project) has the full list.
 
-**To stop a run,** press `Esc` at any time. Nothing is pushed or deployed without your yes. Next time you run `/team-build` in that project, it finds the unfinished run and asks whether to **resume** or **abandon** it. Abandoning stops anything the run started and removes its state files. The branch and its commits stay; delete the branch if you don't want them.
+**To stop a run,** press `Esc`. That interrupts the coordinator. A persona already working in the background may finish its current step; you can see and stop background work in Claude Code's task list. No persona can push or deploy without your yes.
+
+Next time you run `/team-build` in that project, it finds the unfinished run and asks whether to **resume** or **abandon** it. Abandoning stops anything the run started and removes its state files. The branch and its commits stay; delete the branch if you don't want them.
 
 ## The five kinds of work
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/flows-dark.png">
+  <img alt="The five flows side by side, with the approval gates G0, G1 and G2 in amber" src="docs/images/flows.png">
+</picture>
 
 | Work type | Example | What's special |
 |---|---|---|
@@ -94,6 +110,8 @@ The team:
 | Refactor | `/team-build split server.js into modules` | The same tests must pass before and after, and none may be removed or weakened. |
 | Spec build | `/team-build build the MVP in docs/prd.md` | The spec is planned as thin slices. Slice 1 is built and shown to you before the rest. |
 
+Each flow is explained step by step in [Flows and gates](docs/flows.md).
+
 ## What the installer changes
 
 Everything goes into your user-level `~/.claude`, so it applies to **every** Claude Code session and project.
@@ -102,10 +120,10 @@ Everything goes into your user-level `~/.claude`, so it applies to **every** Cla
 |---|---|
 | Skills | About 360 third-party skills in `~/.claude/skills`, plus this repo's `team-build`, `freeze` and `playwright-testing`. Those three folders are replaced on every run. |
 | Personas | The 9 files in `~/.claude/agents/`. Files with the same names are overwritten. |
-| Hooks | 4 PowerShell hooks in `~/.claude/hooks`, wired into `settings.json` |
+| Hooks | `careful.ps1`, `ownership-guard.ps1`, `verify-gate.ps1`, `team-resume.ps1` and `tests/test-hooks.ps1` in `~/.claude/hooks`, wired into `settings.json` |
 | Permission mode | **If you haven't chosen a permission mode**, it's set to `auto`: Claude runs most tools without asking you each time, and a safety classifier still blocks risky actions. To keep being asked, set `permissions.defaultMode` in `~/.claude/settings.json` before you install. |
-| Skill list | So the ~360 skills don't crowd every session's context, each is listed by name only in the main skill list (the author measured about 28k tokens down to about 2k). Personas still load their skills in full. Six `orch-*` skills that conflict with `/team-build` are turned off. Settings you already have for a skill are kept. |
-| Plugins | The Playwright MCP server (lets personas drive a browser) and the Impeccable design plugin |
+| Skill list | Each of the ~360 skills is listed by name only in the main skill list, so they don't crowd every session's context. Personas still load their skills in full. Six `orch-*` skills that conflict with `/team-build` are turned off. Settings you already have for a skill are kept. |
+| Plugins | The Playwright MCP server (lets personas drive a browser) and the Impeccable design plugin, which adds a hook that reviews UI edits |
 
 `settings.json` is merged, never replaced: your other settings stay as they are.
 
@@ -114,30 +132,40 @@ Everything goes into your user-level `~/.claude`, so it applies to **every** Cla
 - **UI edits:** the Impeccable design hook reviews UI file edits at the end of each turn.
 - **Everything else:** the other three hooks do nothing unless a `/team-build` run or a `/freeze` is active.
 
-See [Safety and evidence](docs/safety-and-evidence.md#the-four-hooks) for exactly what each hook does, and how to turn one off.
+[Safety and evidence](docs/safety-and-evidence.md#the-four-hooks) has exactly what each hook does, and how to turn one off.
 
 ## Undo
 
-**Restore your backup:**
+**Restore your backup.** Close Claude Code first. This discards everything created in `~/.claude` since the backup, including conversation history and memory.
 
 ```powershell
 Remove-Item -Recurse -Force "$HOME\.claude"
-Copy-Item -Recurse "$HOME\.claude-backup" "$HOME\.claude"
+Copy-Item -Recurse "$HOME\.claude-backup-20260924" "$HOME\.claude"   # use your backup's folder name
 ```
 
-**Or remove the pieces by hand:**
-1. Delete the 9 persona files from `~/.claude/agents/`.
-2. Delete `~/.claude/skills/{team-build,freeze,playwright-testing}` and `~/.claude/hooks/`.
-3. Remove the four hook entries under `hooks` in `~/.claude/settings.json`.
-4. Run `claude plugin uninstall impeccable@impeccable` and `claude mcp remove playwright -s user`.
+**Or remove only what the installer added:**
+1. **Personas:** delete the 9 files from `~/.claude/agents/`. Their names are the files in this repo's `agents/` folder.
+2. **Skills:** delete the folders `~/.claude/skills/team-build`, `freeze` and `playwright-testing`. The third-party skills are the folders named in `skills-lock.json`; delete the ones you don't want.
+3. **Hooks:** delete `careful.ps1`, `ownership-guard.ps1`, `verify-gate.ps1`, `team-resume.ps1` and `tests/test-hooks.ps1` from `~/.claude/hooks/`. Leave any hooks of your own.
+4. **Settings:** in `~/.claude/settings.json`, remove:
+   - the four hook entries that point at those files;
+   - the `skillOverrides` entries for the skills in `skills-lock.json`;
+   - `permissions.defaultMode`, if you hadn't set it yourself.
+5. **Plugins:** remove the plugins and the leftover state:
+   ```powershell
+   npx -y @anthropic-ai/claude-code plugin uninstall impeccable@impeccable
+   npx -y @anthropic-ai/claude-code plugin marketplace remove impeccable
+   npx -y @anthropic-ai/claude-code mcp remove playwright -s user
+   ```
+   Then delete `~/.claude/state/freeze.json` and `~/.claude/state/verify-gate-trust.json`, if they exist.
 
-The third-party skills are ordinary skill folders in `~/.claude/skills`. Delete the ones you don't want.
+If `claude` is on your PATH, you can use `claude …` instead of `npx -y @anthropic-ai/claude-code …`.
 
 ## Documentation
 
 | Page | Read it to learn |
 |---|---|
-| [How it works](docs/how-it-works.md) | The moving parts and how one run fits together |
+| [How it works](docs/how-it-works.md) | The building blocks, and how one run fits together |
 | [Flows and gates](docs/flows.md) | Each kind of work step by step, the gates, the checks and the review |
 | [The personas](docs/personas.md) | What each persona does, which files it may touch, and what it reports |
 | [Safety and evidence](docs/safety-and-evidence.md) | Why a "PASS" can be trusted, and what the four hooks enforce |
@@ -146,7 +174,7 @@ The third-party skills are ordinary skill folders in `~/.claude/skills`. Delete 
 | [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
 | [Glossary](docs/glossary.md) | AC, gate, lens, fingerprint and the other terms used here |
 
-You can also use one persona on its own, without the full flow. See [Calling one persona directly](docs/personas.md#calling-one-persona-directly).
+You can also use one persona on its own, without the full flow: see [Calling one persona directly](docs/personas.md#calling-one-persona-directly).
 
 ## Updating
 
@@ -155,7 +183,7 @@ git pull
 powershell -NoProfile -ExecutionPolicy Bypass -File .\restore.ps1 -SkipDownloads
 ```
 
-`-SkipDownloads` updates the team files, hooks and settings without downloading skills (no network needed). To update the third-party skills, run the installer without it. To change the setup itself, see [CONTRIBUTING.md](CONTRIBUTING.md).
+`-SkipDownloads` updates the team files, hooks and settings without downloading skills, so it needs no network. To update the third-party skills too, run the installer without it. To change the setup, or to contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 

@@ -148,6 +148,7 @@ Your task gives you the **locations and invariants** the other reviewers examine
   - Headers written before the body is serialised: a serialisation error makes the catch-all try to write headers a second time.
   - Per-IP limiter lockout: flood one IPv6 /64 (or /48) with distinct addresses until a bounded fail-closed map is full, then check that a new client is still served.
   - A keyed outbound call that follows a redirect: point it at a local stub that answers 307 to a second origin, and check whether the key arrives there.
+  - An unread response body on an early return: code that returns after a fetch (error status, bad content type, size check) without reading or cancelling the body keeps the connection open. Under load the pool runs out. Every exit path after the fetch resolves must consume or cancel the body.
 - **Live-server crash probe:** for any change to a server, start the real entry point on a free port (stop it by PID afterwards). Send a raw malformed request line, an invalid URL, an oversized header and invalid JSON, then a normal request. The process must survive and still answer.
 - Trust assumptions: validated on the frontend but not the backend, "internal" endpoints without auth, config assumed present.
 - Error handling: flag catch-alls on data paths, and branching on error-message text. Don't flag catch-alls in best-effort cleanup or fire-and-forget telemetry. Do flag a cleanup step that throws and stops the rest of the cleanup.

@@ -2,12 +2,7 @@
 
 `/team-build` first **classifies** the request into one of five kinds of work, then **sizes** it, then runs that kind's flow. Every flow ends the same way: review, final check, then Gate 2. The authoritative text is [`SKILL.md`](../skills/team-build/SKILL.md); this page explains it.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/flows-dark.png">
-  <img alt="The five flows side by side, with the approval gates in amber" src="images/flows.png">
-</picture>
-
-*G0, G1 and G2 are your approval gates. G1 is skipped for small bug fixes.*
+The [README](../README.md#the-five-kinds-of-work) shows all five flows side by side. This page walks through each one. In the diagrams, the amber hexagons are your approval gates.
 
 **On this page:**
 - [Before any work starts](#before-any-work-starts)
@@ -27,7 +22,7 @@
 The coordinator:
 
 1. **Checks for an unfinished run.** If a previous run was interrupted, it shows you where that run stopped and asks whether to **resume** or **abandon** it. A run counts as unfinished if:
-   - a leftover `.claude/team/` state file exists, or
+   - `.claude/team/ownership.json` or `.claude/team/verify-gate.json` was left behind, or
    - a work file on a matching branch has a status other than `done` or `abandoned`.
 2. **Sets up git.**
    - Starts a repo if needed.
@@ -57,6 +52,9 @@ flowchart LR
         R[review] --> F[verifier: final check] --> G2{{Gate 2<br/>you approve}} --> O[devops: deploy]
     end
     P --> B --> K
+    style P fill:transparent,stroke:#94a3b8
+    style B fill:transparent,stroke:#94a3b8
+    style K fill:transparent,stroke:#94a3b8
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class G0,G1,G2 gate
 ```
@@ -75,13 +73,16 @@ flowchart LR
     end
     subgraph B [Build]
         direction TB
-        T[test-engineer: tests for the<br/>new behavior, shown to FAIL] --> X[builder: change the code<br/>until they pass] --> V2[verifier: check the build]
+        T[test-engineer: tests for<br/>the new behavior,<br/>shown to FAIL] --> X[builder: change the code<br/>until they pass] --> V2[verifier: check the build]
     end
     subgraph K [Check]
         direction TB
         R[review] --> F[verifier: final check] --> G2{{Gate 2<br/>you approve}}
     end
     P --> B --> K
+    style P fill:transparent,stroke:#94a3b8
+    style B fill:transparent,stroke:#94a3b8
+    style K fill:transparent,stroke:#94a3b8
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class G1,G2 gate
 ```
@@ -107,6 +108,9 @@ flowchart LR
         R[review] --> F[verifier: final check] --> G2{{Gate 2<br/>you approve}}
     end
     P --> B --> K
+    style P fill:transparent,stroke:#94a3b8
+    style B fill:transparent,stroke:#94a3b8
+    style K fill:transparent,stroke:#94a3b8
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class G1,G2 gate
 ```
@@ -126,17 +130,20 @@ Better structure, identical behavior.
 flowchart LR
     subgraph P [Plan]
         direction TB
-        A[architect: what moves where<br/>AC: no behavior change] --> V1[verifier: check the plan] --> G1{{Gate 1<br/>you approve}}
+        A[architect: what moves<br/>where; AC: no<br/>behavior change] --> V1[verifier: check the plan] --> G1{{Gate 1<br/>you approve}}
     end
     subgraph B [Build]
         direction TB
-        CT[test-engineer: pin today's behavior<br/>if tests are thin] --> X[builder: restructure<br/>in small steps]
+        CT[test-engineer: pin<br/>today's behavior<br/>if tests are thin] --> X[builder: restructure<br/>in small steps]
     end
     subgraph K [Check]
         direction TB
         R[review: interfaces, outputs<br/>and errors identical] --> F[final check: the same<br/>tests pass as before] --> G2{{Gate 2<br/>you approve}}
     end
     P --> B --> K
+    style P fill:transparent,stroke:#94a3b8
+    style B fill:transparent,stroke:#94a3b8
+    style K fill:transparent,stroke:#94a3b8
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class G1,G2 gate
 ```
@@ -151,7 +158,7 @@ You have a spec or product document to build from.
 flowchart LR
     subgraph P [Plan]
         direction TB
-        A1[architect reads the spec:<br/>approaches for the whole build] --> G0{{Gate 0<br/>you pick one}} --> A2[architect: thin slices,<br/>slice 1 in detail] --> V1[verifier: check the plan] --> G1{{Gate 1<br/>you approve}}
+        A1[architect reads the spec:<br/>approaches for<br/>the whole build] --> G0{{Gate 0<br/>you pick one}} --> A2[architect: thin slices,<br/>slice 1 in detail] --> V1[verifier: check the plan] --> G1{{Gate 1<br/>you approve}}
     end
     subgraph B [Slice 1]
         direction TB
@@ -162,6 +169,9 @@ flowchart LR
         N[each runs as a Feature]
     end
     P --> B --> K
+    style P fill:transparent,stroke:#94a3b8
+    style B fill:transparent,stroke:#94a3b8
+    style K fill:transparent,stroke:#94a3b8
     classDef gate fill:#fef3c7,stroke:#d97706,color:#78350f
     class G0,G1 gate
 ```
@@ -172,7 +182,7 @@ The team stops and asks you at up to three points. Nothing is pushed, merged or 
 
 | Gate | When | What you see | What you decide |
 |---|---|---|---|
-| **Gate 0** | After the architect's direction (medium and large Features, and spec builds) | 3–5 premises, and 2–3 approaches with effort, risk, pros and cons, plus a recommendation. When the choice is close, a second opinion from a four-voice "council" too. | Confirm or correct each premise, and pick an approach |
+| **Gate 0** | After the architect's direction (medium and large Features, and spec builds) | 3–5 premises, and 2–3 approaches with effort, risk, pros and cons, plus a recommendation. When the choice is close, also a "council" verdict: four independent viewpoints (the coordinator, a skeptic, a pragmatist and a critic) argue the choice. | Confirm or correct each premise, and pick an approach |
 | **Gate 1** | After the plan passes the verifier's check | The goal, every acceptance criterion, the key contracts, who owns which files, known gaps, tests that already fail, and open questions | Approve, or send it back |
 | **Gate 2** | After the final check, before any deploy | Every AC with its evidence, new vs. existing test failures, open findings, and the rollback plan. Anything the team couldn't check itself (DNS, OAuth settings, dashboards) is listed separately. | Yes or no on each listed item, then whether to deploy |
 
@@ -186,8 +196,8 @@ The team stops and asks you at up to three points. Nothing is pushed, merged or 
 |---|---|---|---|
 | Baseline | verifier | Before anything changes | Which tests already fail |
 | Quick check | coordinator | After every persona | Only that persona's files changed, the build passes, and the secret scan is clean |
-| Plan check | verifier | After the plan | Every requirement has a testable AC, the contracts are complete, and file ownership doesn't overlap |
-| Build check | verifier | After the builders | Each AC is demonstrated for real: the app is run, the endpoint called, the page used in a browser |
+| Full check of the plan | verifier | After the plan | Every requirement has a testable AC, the contracts are complete, and file ownership doesn't overlap |
+| Full check of the builders | verifier | After the builders | Each AC is demonstrated for real: the app is run, the endpoint called, the page used in a browser |
 | Spot-check | code-reviewer | After a review fix | Each finding is fixed, and the fix added nothing new |
 | Final check | verifier | Before Gate 2 | Every AC, and more. [Details](personas.md#verifier). |
 | Deploy check | verifier | After a deploy | The site responds, key journeys work, and no errors appear |
@@ -198,13 +208,13 @@ The verifier **never trusts reports**. It re-runs everything itself. Anything it
 
 ```mermaid
 flowchart TD
-    M[count the changed<br/>source lines] --> Q{{big or risky?}}
+    M[count the changed<br/>source lines] --> Q{big or risky?}
     Q -- no --> CORE[one reviewer:<br/>core pass]
-    Q -- yes --> L[several reviewers in parallel,<br/>one lens each]
+    Q -- yes --> L[several reviewers<br/>in parallel,<br/>one lens each]
     L --> RT[red-team reviewer:<br/>sees what was checked,<br/>not the verdicts]
     CORE --> MERGE[merge the findings,<br/>drop low-confidence ones]
     RT --> MERGE
-    MERGE --> B{{any BLOCKER<br/>or MAJOR?}}
+    MERGE --> B{any BLOCKER<br/>or MAJOR?}
     B -- yes --> REF[refute task:<br/>try to disprove each finding<br/>from the code or a test]
     REF --> UP[upheld: fixed]
     REF --> RF[refuted: shown at Gate 2]

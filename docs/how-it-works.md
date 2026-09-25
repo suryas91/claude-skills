@@ -6,7 +6,7 @@ This page covers the moving parts and how one run fits together. For each kind o
 
 ```mermaid
 flowchart TB
-    U([You]) -- "/team-build ..." --> C[Coordinator<br/>the main session, following SKILL.md]
+    U([You]) -- "/team-build ..." --> C[Coordinator<br/>main session,<br/>follows SKILL.md]
     C -- "gates 0, 1, 2" --> U
     C -- "task + file ownership" --> P[9 personas<br/>subagents]
     P -- report --> C
@@ -19,14 +19,15 @@ flowchart TB
     C --> W
     C --> G
     P --> G
-    H{{hooks: shell commands, edits,<br/>turn end, session start}} -.-> C & P
+    H{{hooks<br/>shell commands, edits,<br/>turn end, session start}} -.-> C & P
     classDef guard fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef store fill:#f1f5f9,stroke:#64748b,color:#0f172a
     class H guard
     class W,G store
+    style state fill:transparent,stroke:#94a3b8
 ```
 
-There are five kinds of parts.
+It has five building blocks.
 
 **1. The coordinator.** It isn't a separate program. When you type `/team-build`, the main Claude Code session loads [`SKILL.md`](../skills/team-build/SKILL.md) and follows it step by step. The coordinator never writes application code. It:
 - sets up the project (git branch, `CLAUDE.md` commands, `.gitignore`);
@@ -68,16 +69,20 @@ There are five kinds of parts.
 
 ## Files a run creates in your project
 
-| Path | Written by | Committed? | Purpose |
-|---|---|---|---|
-| `docs/work/<slug>.md` | architect (plan), coordinator (handoff, tally, verification, cost, retro), every persona except code-reviewer and verifier (log) | yes | The record of the run. See [The work file](work-file.md). |
-| `.claude/agent-memory/<persona>/` | each persona (its own folder only); the coordinator adds lessons at the end of a run | yes | What each persona should remember about this project |
-| `CLAUDE.md` (`## Project commands`, `## Stack`) | coordinator | yes | Install, dev, build, typecheck, lint, test and e2e commands every persona uses |
-| `.gitignore` | coordinator | yes | Adds `.env*` (except `.env.example`), `.playwright-mcp/` and `.claude/team/` if they're missing |
-| `docs/adr/*.md` | architect | yes | Architecture decision records, for significant decisions |
-| `.claude/team/ownership.json` | coordinator, before every persona call | no (ignored by git) | Which files each persona may edit right now |
-| `.claude/team/verify-gate.json` | `arm-gate.ps1` | no | The test command for the "tests must pass" gate |
-| `.claude/team/processes.json` | coordinator | no | Servers it started, so they can be stopped later by their process ID |
+**Committed on the run's branch:**
+- **`docs/work/<slug>.md`:** the record of the run. See [The work file](work-file.md).
+  - The architect writes the plan.
+  - The coordinator writes the handoff, tally, verification, cost and retro.
+  - Every persona except code-reviewer and verifier adds a log entry.
+- **`.claude/agent-memory/<persona>/`:** what each persona should remember about this project. Each persona writes only its own folder, and the coordinator adds lessons at the end of a run.
+- **`CLAUDE.md`:** a `## Project commands` section (install, dev, build, typecheck, lint, test, e2e) and a `## Stack` section, which every persona uses. Written by the coordinator.
+- **`.gitignore`:** entries for `.env*` (except `.env.example`), `.playwright-mcp/` and `.claude/team/`, if they're missing. Written by the coordinator.
+- **`docs/adr/*.md`:** records of significant architecture decisions. Written by the architect.
+
+**Not committed** (in `.claude/team/`, which git ignores):
+- **`ownership.json`:** which files each persona may edit right now. The coordinator rewrites it before every persona call.
+- **`verify-gate.json`:** the test command for the "tests must pass" gate. Written by `arm-gate.ps1`.
+- **`processes.json`:** servers the coordinator started, so they can be stopped later by their process ID.
 
 Before the first persona runs, the coordinator:
 1. runs `git init` and makes a first commit, if the folder isn't a Git repo yet;
@@ -95,7 +100,7 @@ Outside the project, two small state files live in `~/.claude/state/`:
 A small Change, from request to finish:
 
 ```mermaid
-%%{init: {'sequence': {'mirrorActors': false, 'wrap': true}}}%%
+%%{init: {'sequence': {'mirrorActors': false, 'wrap': true, 'actorMargin': 24, 'width': 120, 'noteMargin': 6}}}%%
 sequenceDiagram
     autonumber
     actor You
@@ -104,27 +109,27 @@ sequenceDiagram
     participant V as verifier
     participant T as test-engineer
     participant B as builder
-    participant R as code-reviewer
-    You->>C: /team-build make search also match tags
-    Note over C: set up the branch, classify: Change, small
+    participant R as reviewer
+    You->>C: /team-build make search match tags
+    Note over C: branch, classify: Change, small
     C->>V: record the test baseline
     C->>A: write the plan
     C->>V: check the plan
     rect rgba(217, 119, 6, 0.12)
-    C->>You: Gate 1: here is the plan
+    C->>You: Gate 1: the plan
     You->>C: approve
     end
-    C->>T: tests for the new behavior, shown to fail first
-    C->>B: change the code until they pass
+    C->>T: new tests, shown to fail first
+    C->>B: change code until they pass
     C->>V: check the builder's work
     C->>R: review the change
     R-->>C: findings
-    C->>B: fix the upheld findings
+    C->>B: fix upheld findings
     C->>R: spot-check the fixes
-    C->>V: final check of everything
+    C->>V: final check
     rect rgba(217, 119, 6, 0.12)
-    C->>You: Gate 2: evidence and open items
-    You->>C: approve (or stop here)
+    C->>You: Gate 2: evidence
+    You->>C: approve or stop
     end
     Note over C: retro, lessons, clean up
 ```
@@ -143,7 +148,7 @@ Then it commits (`team(<persona>): <summary>`) and updates the work file's Hando
 
 | Size | Meaning | What changes |
 |---|---|---|
-| Small | A few files, no new interfaces or data changes | One builder. The architect writes a short plan: a handful of ACs, never more than about 15. For a bug fix, the coordinator writes the plan from the confirmed root cause. |
+| Small | A few files, no new interfaces or data changes | One builder. The architect writes a short plan, usually a handful of ACs and at most about 15. For a bug fix, the coordinator writes the plan from the confirmed root cause. |
 | Medium or large | New interfaces, several builders, or data changes | Several builders in parallel where their files don't overlap, a failure-modes table, and measured numbers for speed, accessibility and cost. **Features and spec builds** also get a direction stage and Gate 0, where you pick an approach. |
 
 The review is sized separately, by how many **source** lines changed (tests and docs don't count) and by risk:
@@ -152,7 +157,7 @@ The review is sized separately, by how many **source** lines changed (tests and 
 
 ## Why subagents, and not one long session?
 
-- **Independence.** The verifier and code-reviewer never see the builders' reasoning, only the code and the criteria. They re-run everything themselves, and in the test runs they caught problems the builders' own checks missed.
+- **Independence.** The verifier and code-reviewer judge from the code and the criteria, not from the builders' claims. They re-run everything themselves, and in the test runs they caught problems the builders' own checks missed.
 - **Focus.** Each persona loads only the skills for its job, and has a short, specific set of rules.
 - **Parallelism.** Builders working on different files can run at the same time.
 - **Recoverability.** The run's state lives in the work file and git, not in the conversation. A compaction or a crash doesn't lose it.

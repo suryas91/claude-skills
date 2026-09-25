@@ -41,7 +41,7 @@ Before anything changes, the verifier runs the full test suite and records **eve
 [`fingerprint.ps1`](../skills/team-build/scripts/fingerprint.ps1) prints a hash of the files in the project. It covers tracked and new files, and follows `.gitignore`. It leaves out the work file, the persona notes and the team's state folder, because those change without changing the product. It never touches your staging area.
 
 - **Same content, same hash.** The hash doesn't change across commits, amends and rebases, so a verdict recorded with a fingerprint is still valid **exactly while the fingerprint matches**.
-- **Every verdict carries one.** Every verifier and code-reviewer report ends with a `Fingerprint:` line. The verifier takes one at the start and one at the end of its check; if they differ, the code changed while it was checking, and the verdict is FAIL.
+- **Every verdict carries one.** Every verifier and code-reviewer report includes a `Fingerprint:` line. The verifier takes one at the start and one at the end of its check; if they differ, the code changed while it was checking, and the verdict is FAIL.
 - **The review and the final check must match.** If their fingerprints differ, code changed after the review: the changed part is re-reviewed, and the final check is run again.
 - **It's recomputed before Gate 2 and before any deploy.** If it doesn't match the final check's, nothing is presented or deployed.
 
@@ -49,15 +49,11 @@ Before anything changes, the verifier runs the full test suite and records **eve
 
 [`secret-scan.ps1`](../skills/team-build/scripts/secret-scan.ps1) runs before **every** commit the team makes. It scans only the files being committed, and prints `file:line  kind`, **never the secret itself**. It looks for:
 
-| Kind | Kind |
-|---|---|
-| Anthropic API key | Slack token |
-| OpenAI-style API key | Stripe **live** secret or restricted key (`sk_live_`, `rk_live_`) |
-| AWS access key ID | Google API key |
-| GitHub token | Private key block |
-| GitLab token | A password inside a **database or queue URL** (postgres, mysql, mongodb, redis, amqp) |
-| JWT | A hardcoded secret, such as `api_key = "..."` |
-| A `.env` file being committed (anything but `.env.example`) | |
+- API keys and tokens: Anthropic, OpenAI-style, AWS, GitHub, GitLab, Slack, Google, and Stripe **live** keys (`sk_live_`, `rk_live_`);
+- private key blocks and JWTs;
+- a password inside a **database or queue URL** (postgres, mysql, mongodb, redis, amqp);
+- a hardcoded secret, such as `api_key = "..."`;
+- a `.env` file being committed (anything but `.env.example`).
 
 It works by patterns, so a secret in a format it doesn't know isn't caught: an `https://user:pass@` URL, a Stripe test key, or a custom token. It's a safety net, not a guarantee.
 
@@ -66,8 +62,8 @@ It works by patterns, so a secret in a format it doesn't know isn't caught: an `
 **Fake keys in tests** are built from pieces at runtime, so no key-shaped text appears in the source.
 
 In the test runs the scan stopped commits four times:
-- twice for a fake key that a test deliberately needed (it was then allowed and noted);
-- once for a key prefix that a persona had copied into its notes;
+- twice for the fake API key that one test request deliberately included: once where the work file quoted the request, and once in a test. Both were allowed and noted.
+- once for a made-up example secret that the verifier had written into its notes;
 - once for a test string that looked like a secret.
 
 ## The four hooks
@@ -138,7 +134,7 @@ If a run is in progress in the project, it tells the session to re-read the skil
 
 | Hook | What happens |
 |---|---|
-| ownership-guard | An error while checking blocks the edit, because a broken guard would otherwise let it through. If it can't read the request at all, the edit is allowed. |
+| ownership-guard | If it hits an error while checking an edit, it blocks the edit, because a broken guard would otherwise let it through. The one exception: a request it can't read at all is allowed, since there is nothing to check. |
 | careful | It asks you, rather than silently allowing the command. |
 | verify-gate | It lets the turn end. |
 | team-resume | It adds nothing. |

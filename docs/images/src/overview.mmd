@@ -1,13 +1,10 @@
 flowchart TB
     U([You]) -->|/team-build request| C[Coordinator<br/>classifies, hands off, checks]
     C -.- W[(work file<br/>plan, evidence, cost)]
-    C --> PLAN
-    subgraph PLAN [Plan]
-        direction LR
-        A[architect] ~~~ D[ui-designer<br/>if the UI changes]
-    end
-    PLAN --> G1{{Gates 0 and 1<br/>you pick the approach and approve the plan}}
-    G1 --> BUILD
+    C --> A[architect<br/>writes the plan]
+    A --> G1{{Gates 0 and 1<br/>you pick the approach and approve the plan}}
+    G1 --> D[ui-designer<br/>if the UI changes]
+    D --> BUILD
     subgraph BUILD [Build]
         direction LR
         F[frontend-dev] ~~~ B[backend-dev] ~~~ AI[ai-agent-engineer] ~~~ T[test-engineer]
@@ -26,3 +23,5 @@ flowchart TB
     class G1,G2 gate
     class H guard
     class W store
+    style BUILD fill:transparent,stroke:#94a3b8
+    style CHECK fill:transparent,stroke:#94a3b8

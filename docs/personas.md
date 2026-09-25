@@ -13,11 +13,11 @@ Each persona then works alone and ends with a report in a fixed format.
 flowchart LR
     subgraph Plan
         direction TB
-        A[architect] ~~~ D[ui-designer]
+        A[architect]
     end
-    subgraph Build
+    subgraph Build [Design and build]
         direction TB
-        F[frontend-dev] ~~~ B[backend-dev] ~~~ AI[ai-agent-engineer] ~~~ T[test-engineer]
+        D[ui-designer] ~~~ F[frontend-dev] ~~~ B[backend-dev] ~~~ AI[ai-agent-engineer] ~~~ T[test-engineer]
     end
     subgraph Check
         direction TB
@@ -28,9 +28,13 @@ flowchart LR
         O[devops]
     end
     Plan --> Build --> Check --> Ship
+    style Plan fill:transparent,stroke:#94a3b8
+    style Build fill:transparent,stroke:#94a3b8
+    style Check fill:transparent,stroke:#94a3b8
+    style Ship fill:transparent,stroke:#94a3b8
 ```
 
-*The typical Feature order. In a Change or a Bug fix, test-engineer goes before the builder, so tests come first. ui-designer runs only when the UI changes, and devops only after you approve shipping.*
+*The typical Feature order. You approve the plan between Plan and Design and build. ui-designer runs only when the UI changes. In a Change or a Bug fix, test-engineer goes before the builder, so tests come first. devops runs only after you approve shipping.*
 
 ## At a glance
 
@@ -55,7 +59,7 @@ These appear in every persona's "Team protocol":
 - **Evidence.** Never claim something works unless you ran it in this session. Otherwise say "not verified".
 - **Secrets.** Never print, log, commit or copy keys, tokens or `.env` contents. Refer to settings by name.
 - **Safety.** No pushes, deploys or data deletion without your approval being passed down.
-- **Processes.** Never stop programs by name, because that also kills other programs on the machine, Claude Code included. Stop only the process ID you started.
+- **Processes.** Never stop programs by name ([why](safety-and-evidence.md#careful-before-every-shell-command)). Stop only the process ID you started.
 
 Two more rules appear where they matter:
 - **Stay in scope** (the three builders): the task and its ACs are the boundary. Nearby problems are reported under Open issues, not fixed.
@@ -66,7 +70,12 @@ Two more rules appear where they matter:
 ## Each persona in detail
 
 ### architect
-*Preloads: spec-driven-development, planning-and-task-breakdown, api-and-interface-design, documentation-and-adrs, product-lens.*
+<details><summary>Skills it preloads</summary>
+
+spec-driven-development, planning-and-task-breakdown, api-and-interface-design, documentation-and-adrs, product-lens
+
+</details>
+
 - **Two stages.**
   - **Direction** (medium and large Features, and spec builds): premises you can agree or disagree with, and 2–3 approaches (the smallest, the ideal, and sometimes a different framing), with effort, risk, pros and cons. When two approaches are close, it says so, and you get a second opinion at Gate 0.
   - **Plan:** the full work file.
@@ -82,7 +91,12 @@ Two more rules appear where they matter:
 - **Keeps small plans small:** at most about 15 ACs.
 
 ### ui-designer
-*Preloads: ui-ux-pro-max, emil-design-eng, make-interfaces-feel-better, design-system-nextlevelbuilder, animate, web-design-guidelines.*
+<details><summary>Skills it preloads</summary>
+
+ui-ux-pro-max, emil-design-eng, make-interfaces-feel-better, design-system-nextlevelbuilder, animate, web-design-guidelines
+
+</details>
+
 - **Writes** the Design section (direction, layout per screen, component inventory, every state) and the design tokens (color, type, spacing, radius, shadow, motion).
 - **Standards:**
   - WCAG AA contrast, with the ratios stated;
@@ -96,33 +110,53 @@ Two more rules appear where they matter:
 - **Each report includes a `Not tested:` line,** so gaps are stated rather than hidden.
 
 **frontend-dev**
-*Preloads: frontend-ui-engineering, react-patterns, ui-styling, frontend-a11y, error-handling.*
+<details><summary>Skills it preloads</summary>
+
+frontend-ui-engineering, react-patterns, ui-styling, frontend-a11y, error-handling
+
+</details>
+
 - Never calls a secret-bearing API from the browser.
 - Treats accessibility as part of done.
 - Triages the Impeccable design hook's findings.
 
 **backend-dev**
-*Preloads: backend-patterns, api-design, database-migrations, error-handling.*
+<details><summary>Skills it preloads</summary>
+
+backend-patterns, api-design, database-migrations, error-handling
+
+</details>
+
 - Validates all input at the boundary and uses parameterized queries.
 - Checks authorization, not just login.
 - Keeps request parsing inside its error handling, because in Node a stray error there can crash the server.
 
 **ai-agent-engineer**
-*Preloads: claude-api, agent-harness-construction, context-engineering, loop-design-check, cost-aware-llm-pipeline, agent-architecture-audit, agent-introspection-debugging, regex-vs-llm-structured-text, source-driven-development, eval-harness.*
+<details><summary>Skills it preloads</summary>
+
+claude-api, agent-harness-construction, context-engineering, loop-design-check, cost-aware-llm-pipeline, agent-architecture-audit, agent-introspection-debugging, regex-vs-llm-structured-text, source-driven-development, eval-harness
+
+</details>
+
 
 It follows [`ai-feature-standards.md`](../skills/team-build/references/ai-feature-standards.md):
 - tool inputs are validated at runtime;
-- each tool is labelled read-only, reversible or irreversible;
+- each tool is labelled read, draft, reversible write or irreversible, and irreversible ones need a confirmation;
 - permissions are enforced in code, not left to the model;
 - untrusted text is wrapped in random markers, so it can't pose as instructions;
 - every agent loop has a budget, and ends in a named final state;
 - prompt caching is proven to work;
 - spending caps reserve the cost before each call.
 
-**The real-socket check (backend-dev and ai-agent-engineer).** If the work starts a server, spawns a process or talks over stdin and stdout, the builder runs it once with the real network and real pipes before reporting done: a real upstream call, then closing its input and output. It must exit cleanly. Tests that block the network can't see crashes that only happen after real connections close; two of the test runs had exactly that bug.
+**The real-socket check (backend-dev and ai-agent-engineer).** If the work starts a server, spawns a process or talks over stdin and stdout, the builder runs it once with the real network and real pipes before reporting done: a real upstream call, then closing its input and output. It must exit cleanly. Tests that block the network can't see crashes that only happen after real connections close. The test runs found two such crashes ([lessons learned](lessons-learned.md#what-the-checks-caught)).
 
 ### test-engineer
-*Preloads: test-driven-development, playwright-testing, ai-regression-testing, debugging-and-error-recovery.*
+<details><summary>Skills it preloads</summary>
+
+test-driven-development, playwright-testing, ai-regression-testing, debugging-and-error-recovery
+
+</details>
+
 - **Proves every test can fail.** Each new test is run against the code from before the change, and must fail there.
 - **Never weakens a test to get green.** A flaky test is a bug; a fix has to pass 10 runs out of 10.
 - **Owns the AI eval cases.** It writes them from the ACs before the feature runs, so the person writing the prompt doesn't also write the answer key.
@@ -130,7 +164,12 @@ It follows [`ai-feature-standards.md`](../skills/team-build/references/ai-featur
 - **Tests shutdown for real.** For shutdown code, it uses fakes that respond after a delay, so a request really is still in progress when the program shuts down.
 
 ### code-reviewer
-*Preloads: code-review-and-quality, security-and-hardening, code-simplification, ponytail-review, accessibility.*
+<details><summary>Skills it preloads</summary>
+
+code-review-and-quality, security-and-hardening, code-simplification, ponytail-review, accessibility
+
+</details>
+
 - **Reviews the change itself, not the reports,** reading the whole diff and enough of the surrounding code first.
 - **Runs a core pass on every review,** from [`review-checklist.md`](../skills/team-build/references/review-checklist.md):
   - data safety;
@@ -145,7 +184,12 @@ It follows [`ai-feature-standards.md`](../skills/team-build/references/ai-featur
 - **Refute tasks:** in one, it tries to disprove findings rather than add new ones.
 
 ### verifier
-*Preloads: run, browser-qa.*
+<details><summary>Skills it preloads</summary>
+
+run, browser-qa
+
+</details>
+
 - **Trusts nothing it didn't run.** Reports, commits and comments are all just claims.
 - **Reads the test counts, not just the exit code.**
   - Zero tests run is a FAIL.
@@ -161,7 +205,12 @@ It follows [`ai-feature-standards.md`](../skills/team-build/references/ai-featur
 - **Anything it can't check itself,** such as DNS, OAuth or a dashboard setting, is marked UNVERIFIED, with the exact manual check for you.
 
 ### devops
-*Preloads: ci-cd-and-automation, deployment-patterns, observability-and-instrumentation, shipping-and-launch, production-audit, github-ops.*
+<details><summary>Skills it preloads</summary>
+
+ci-cd-and-automation, deployment-patterns, observability-and-instrumentation, shipping-and-launch, production-audit, github-ops
+
+</details>
+
 - **Prepares freely, ships only with your approval.** Without it, it stops at a dry run and reports the exact command.
 - **Every deploy has a written rollback plan.**
 - **The ship checklist** ([`ship-checklist.md`](../skills/team-build/references/ship-checklist.md)) is a read-only check of the whole repo before a first production deploy. It covers:

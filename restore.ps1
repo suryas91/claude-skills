@@ -70,7 +70,15 @@ $settingsPath = "$claude\settings.json"
 # Read and write as UTF-8 explicitly: Windows PowerShell 5.1 otherwise reads a BOM-less file as ANSI
 # and would corrupt any non-ASCII text in your existing settings.
 $utf8 = New-Object Text.UTF8Encoding $false
-$settings = if (Test-Path $settingsPath) { [IO.File]::ReadAllText($settingsPath, $utf8) | ConvertFrom-Json } else { [pscustomobject]@{} }
+$settings = [pscustomobject]@{}
+if (Test-Path $settingsPath) {
+    $raw = [IO.File]::ReadAllText($settingsPath, $utf8)
+    if (-not [string]::IsNullOrWhiteSpace($raw)) {
+        try { $settings = $raw | ConvertFrom-Json }
+        catch { throw "$settingsPath is not valid JSON (or has keys that differ only in case), so it was left untouched. Fix it and run the installer again. Details: $($_.Exception.Message)" }
+    }
+}
+if ($null -eq $settings) { $settings = [pscustomobject]@{} }
 
 # 3a. Show only skill names in the main skill list (personas still preload full skills).
 $overrides = [ordered]@{}
@@ -119,18 +127,25 @@ if (-not $SkipDownloads) {
     # The Claude CLI may report "not found" on stderr. Under 'Stop', Windows PowerShell 5.1 turns any
     # native stderr output into a terminating error, so this step runs with 'Continue'.
     $ErrorActionPreference = 'Continue'
+    $failed = @()
     try {
         $mcp = npx -y @anthropic-ai/claude-code mcp get playwright 2>$null
-        if ($LASTEXITCODE -ne 0 -or -not $mcp) { npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest" }
+        if ($LASTEXITCODE -ne 0 -or -not $mcp) {
+            npx -y @anthropic-ai/claude-code mcp add playwright -s user -- cmd /c npx -y "@playwright/mcp@latest"
+            if ($LASTEXITCODE -ne 0) { $failed += 'the Playwright MCP server' }
+        }
 
         $plugins = npx -y @anthropic-ai/claude-code plugin list 2>$null | Out-String
         if ($plugins -notmatch 'impeccable@impeccable') {
             npx -y @anthropic-ai/claude-code plugin marketplace add pbakaus/impeccable
+            if ($LASTEXITCODE -ne 0) { $failed += 'the Impeccable marketplace' }
             npx -y @anthropic-ai/claude-code plugin install impeccable@impeccable --scope user
+            if ($LASTEXITCODE -ne 0) { $failed += 'the Impeccable plugin' }
         }
     } catch {
-        Write-Output "Warning: could not set up the Playwright MCP server or the Impeccable plugin ($($_.Exception.Message)). Install them by hand; see the README."
+        $failed += "the MCP server and plugin step ($($_.Exception.Message))"
     } finally {
+        if ($failed) { Write-Output "Warning: could not install $($failed -join ', '). Everything else is installed; add these by hand (see docs/troubleshooting.md)." }
         $ErrorActionPreference = 'Stop'
     }
 }
